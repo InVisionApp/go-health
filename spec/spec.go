@@ -1,4 +1,4 @@
-package health
+package spec
 
 type Health struct {
 	globalFailed bool
