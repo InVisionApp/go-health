@@ -3,7 +3,7 @@ go-health
 A library that enables *async* dependency health checking for services running on an orchastrated container platform such as kubernetes or mesos.
 
 ## Why is this important?
-Container orchestration platforms require that the underlying service(s) expose a "healthcheck" which is by the platform to determine whether the container is in a good or bad state.
+Container orchestration platforms require that the underlying service(s) expose a "healthcheck" which is used by the platform to determine whether the container is in a good or bad state.
 
 While this can be achieved by simply exposing a `/status` endpoint that perfoms synchronous checks against its dependencies (followed by returning a `200` or `non-200` status code), it is not optimal for a number of reasons:
 
@@ -42,22 +42,33 @@ This library:
 
 ```go
 hc := health.New()
-hc.AddCheckers([]*HealthConfig{
+
+// Create a MySQL checker
+mysqlChecker, err := checkers.NewMySQL(
+    &checkers.MySQL{
+        User: mysqlUsername,
+        Password: mysqlPassword,
+        Host: mysqlHost,
+        Port: mysqlPort,
+        DB: mysqlDB,
+        Query: `SELECT id FROM table LIMIT 1`,
+        QueryTimeout: time.Duration(1) * time.Second, // Optional
+        Timeout: time.Duration(5) * time.Second, // Optional
+    }
+)
+if err != nil {
+    log.Fatalf("Unable to instantiate MySQL checker: %v", err)
+}
+
+if err := hc.AddCheckers([]*HealthConfig{
     {
         Name: "my-main-mysql-dep",
-        Checker: &health.MySQLCheck{
-            User: username,
-            Password: password,
-            Host: host,
-            Port: port,
-            DB: dbName,
-            Query: `SELECT id FROM table LIMIT 1`,
-            Interval: time.Duration(5) * time.Second, // Optional
-            QueryTimeout: time.Duration(1) * time.Second, // Optional
-            Timeout: time.Duration(5) * time.Second, // Optional
-        },
+        Checker: mysqlChecker,
         Fatal: true // Whether the failure of this check should cause the entire healthcheck to fail
+        Interval: time.Duration(3) * time.Second,
     },
+}); err != nil {
+    log.Fatalf("Unable to complete adding checker configs: %v", err)
 }
 ```
 
