@@ -38,8 +38,10 @@ type IHealth interface {
 // as `MySQLChecker`, `RedisChecker` and `HTTPChecker`. By implementing the
 // interface, you can feed your own custom checkers into the health library.
 type ICheckable interface {
-	Status() error
-	IsFatal() bool
+	// Status allows you to return additional data as an `interface{}` and `error`
+	// to signify that the check has failed. If `interface{}` is non-nil, it will
+	// be exposed under `State.Data` for that particular check.
+	Status() (interface{}, error)
 }
 
 // The Config struct is used for defining and configuring checks.
@@ -53,18 +55,19 @@ type Config struct {
 // The State struct contains the results of the latest run of a particular check.
 type State struct {
 	Name      string
-	Failed    bool
-	Fatal     bool
+	Status    string
+	Err       error
 	Data      interface{} // contains JSON message (that can be marshalled)
 	Timestamp time.Time
 }
 
+// Health contains internal go-health internal structures
 type Health struct {
 	active bool // indicates whether the healthcheck is actively running
 	failed bool // indicates whether the healthcheck has encountered a fatal error in one of its deps
 
 	configs    []*Config
-	states     []*State
+	states     map[string]State
 	statesLock sync.Mutex
 	tickers    map[string]*time.Ticker // contains map of actively running tickers
 }
@@ -73,7 +76,8 @@ type Health struct {
 func New() *Health {
 	return &Health{
 		configs:    make([]*Config, 0),
-		states:     make([]*State, 0),
+		states:     make(map[string]State, 0),
+		tickers:    make(map[string]*time.Ticker, 0),
 		statesLock: sync.Mutex{},
 	}
 }
@@ -114,7 +118,7 @@ func (h *Health) Start() error {
 	for _, c := range h.configs {
 		ticker := time.NewTicker(c.Interval)
 
-		if err := h.startRunner(ticker, c); err != nil {
+		if err := h.startRunner(c, ticker); err != nil {
 			return fmt.Errorf("Unable to create healthcheck runner '%v': %v", c.Name, err)
 		}
 
@@ -134,10 +138,13 @@ func (h *Health) Stop() error {
 		return ErrAlreadyStopped
 	}
 
-	for _, ticker := range h.tickers {
-		// Stopping ticker
+	for name, ticker := range h.tickers {
+		log.Printf("Stopping ticker '%v'", name)
 		ticker.Stop()
 	}
+
+	// Reset ticker map
+	h.tickers = make(map[string]*time.Ticker, 0)
 
 	return nil
 }
@@ -151,7 +158,7 @@ func (h *Health) Stop() error {
 //
 // The map key is the name of the check.
 func (h *Health) State() (map[string]State, bool, error) {
-	return nil, false, nil
+	return h.safeGetStates(), h.failed, nil
 }
 
 // StateMapInterface returns a "pretty"/"curated" version of what the `State()`
@@ -173,7 +180,7 @@ func (h *Health) State() (map[string]State, bool, error) {
 // Note: The key in the map is the name of the check. The value in the map
 //       is the data that is returned from the `ICheckable.Status()`.
 func (h *Health) StateMapInterface() (map[string]interface{}, bool, error) {
-	return nil, false, nil
+	panic("not implemented")
 }
 
 func (h *Health) startRunner(cfg *Config, ticker *time.Ticker) error {
@@ -181,8 +188,27 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker) error {
 
 	go func() {
 		for range ticker.C {
-			err := cfg.Checker.Status()
-			h.updateState(cfg.Name, err, cfg.Fatal())
+			data, err := cfg.Checker.Status()
+
+			stateEntry := &State{
+				Name:      cfg.Name,
+				Status:    "ok",
+				Err:       err,
+				Data:      data,
+				Timestamp: time.Now(),
+			}
+
+			if err != nil {
+				stateEntry.Status = "failed"
+			}
+
+			// Toggle the global state failure if this check is allowed to cause
+			// a complete healthcheck failure.
+			if err != nil && cfg.Fatal {
+				h.failed = true
+			}
+
+			h.safeUpdateState(stateEntry)
 		}
 	}()
 
@@ -190,6 +216,15 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker) error {
 	return nil
 }
 
-func (h *Health) updateState(check string, err error, fatal bool) {
+func (h *Health) safeUpdateState(stateEntry *State) {
 	// update states here
+	h.statesLock.Lock()
+	defer h.statesLock.Unlock()
+	h.states[stateEntry.Name] = *stateEntry
+}
+
+func (h *Health) safeGetStates() map[string]State {
+	h.statesLock.Lock()
+	defer h.statesLock.Unlock()
+	return h.states
 }
