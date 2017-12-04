@@ -63,6 +63,8 @@ type State struct {
 
 // Health contains internal go-health internal structures
 type Health struct {
+	Logger ILogger
+
 	active bool // indicates whether the healthcheck is actively running
 	failed bool // indicates whether the healthcheck has encountered a fatal error in one of its deps
 
@@ -75,6 +77,7 @@ type Health struct {
 // New returns a new instance of the Health struct.
 func New() *Health {
 	return &Health{
+		Logger:     newMockLogger(),
 		configs:    make([]*Config, 0),
 		states:     make(map[string]State, 0),
 		tickers:    make(map[string]*time.Ticker, 0),
@@ -116,6 +119,7 @@ func (h *Health) Start() error {
 	}
 
 	for _, c := range h.configs {
+		h.Logger.Debug("Starting checker", map[string]interface{}{"name": c.Name})
 		ticker := time.NewTicker(c.Interval)
 
 		if err := h.startRunner(c, ticker); err != nil {
@@ -139,7 +143,7 @@ func (h *Health) Stop() error {
 	}
 
 	for name, ticker := range h.tickers {
-		log.Printf("Stopping ticker '%v'", name)
+		h.Logger.Debug("Stopping checker", map[string]interface{}{"name": name})
 		ticker.Stop()
 	}
 
@@ -199,6 +203,12 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker) error {
 			}
 
 			if err != nil {
+				h.Logger.Error("healthcheck has failed", map[string]interface{}{
+					"check": cfg.Name,
+					"fatal": cfg.Fatal,
+					"err":   err,
+				})
+
 				stateEntry.Status = "failed"
 			}
 
@@ -212,7 +222,7 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker) error {
 		}
 	}()
 
-	log.Printf("Ticker %v exiting", cfg.Name)
+	h.Logger.Debug("Checker exiting", map[string]interface{}{"name": cfg.Name})
 	return nil
 }
 

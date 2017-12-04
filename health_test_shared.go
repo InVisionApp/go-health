@@ -6,13 +6,13 @@ import (
 	"time"
 )
 
-type FakeChecker struct {
+type fakeChecker struct {
 	ReturnArg0  interface{}
 	ReturnArg1  error
 	Invocations int
 }
 
-func (f *FakeChecker) Status() (interface{}, error) {
+func (f *fakeChecker) Status() (interface{}, error) {
 	f.Invocations++
 	return f.ReturnArg0, f.ReturnArg1
 }
@@ -22,19 +22,19 @@ func setupRunners(t *testing.T, cfgs []*Config) (*Health, []*Config, error) {
 	testCheckInterval := time.Duration(10) * time.Millisecond
 
 	if cfgs == nil {
-		fakeChecker1 := &FakeChecker{}
-		fakeChecker2 := &FakeChecker{}
+		checker1 := &fakeChecker{}
+		checker2 := &fakeChecker{}
 
 		cfgs = []*Config{
 			&Config{
 				Name:     "foo",
-				Checker:  fakeChecker1,
+				Checker:  checker1,
 				Interval: testCheckInterval,
 				Fatal:    false,
 			},
 			&Config{
 				Name:     "bar",
-				Checker:  fakeChecker2,
+				Checker:  checker2,
 				Interval: testCheckInterval,
 				Fatal:    false,
 			},

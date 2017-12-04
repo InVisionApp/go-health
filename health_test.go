@@ -9,7 +9,6 @@ import (
 )
 
 var (
-	fakeChecker       = &FakeChecker{}
 	testCheckInterval = time.Duration(10) * time.Millisecond
 )
 
@@ -32,7 +31,7 @@ func TestAddChecks(t *testing.T) {
 		h := New()
 		testConfig := &Config{
 			Name:     "foo",
-			Checker:  fakeChecker,
+			Checker:  &fakeChecker{},
 			Interval: testCheckInterval,
 			Fatal:    false,
 		}
@@ -69,7 +68,7 @@ func TestAddCheck(t *testing.T) {
 		h := New()
 		testConfig := &Config{
 			Name:     "foo",
-			Checker:  fakeChecker,
+			Checker:  &fakeChecker{},
 			Interval: testCheckInterval,
 			Fatal:    false,
 		}
@@ -96,19 +95,19 @@ func TestStart(t *testing.T) {
 
 	t.Run("Happy path", func(t *testing.T) {
 		h := New()
-		fakeChecker1 := &FakeChecker{}
-		fakeChecker2 := &FakeChecker{}
+		checker1 := &fakeChecker{}
+		checker2 := &fakeChecker{}
 
 		cfgs := []*Config{
 			&Config{
 				Name:     "foo",
-				Checker:  fakeChecker1,
+				Checker:  checker1,
 				Interval: testCheckInterval,
 				Fatal:    false,
 			},
 			&Config{
 				Name:     "bar",
-				Checker:  fakeChecker2,
+				Checker:  checker2,
 				Interval: testCheckInterval,
 				Fatal:    false,
 			},
@@ -131,8 +130,8 @@ func TestStart(t *testing.T) {
 		time.Sleep(time.Duration(15) * time.Millisecond)
 
 		// Both runners should've ran
-		Expect(fakeChecker1.Invocations).To(Equal(1), "Checker should have been executed")
-		Expect(fakeChecker2.Invocations).To(Equal(1), "Checker should have been executed")
+		Expect(checker1.Invocations).To(Equal(1), "Checker should have been executed")
+		Expect(checker2.Invocations).To(Equal(1), "Checker should have been executed")
 
 		// Both runners should've recorded their state
 		Expect(h.states).To(HaveKey("foo"))
@@ -205,20 +204,20 @@ func TestStartRunner(t *testing.T) {
 	})
 
 	t.Run("Happy path - 1 checker fails (non-fatal)", func(t *testing.T) {
-		fakeChecker1 := &FakeChecker{}
-		fakeChecker2 := &FakeChecker{}
-		fakeChecker2.ReturnArg1 = errors.New("something failed")
+		checker1 := &fakeChecker{}
+		checker2 := &fakeChecker{}
+		checker2.ReturnArg1 = errors.New("something failed")
 
 		cfgs := []*Config{
 			&Config{
 				Name:     "foo",
-				Checker:  fakeChecker1,
+				Checker:  checker1,
 				Interval: testCheckInterval,
 				Fatal:    false,
 			},
 			&Config{
 				Name:     "bar",
-				Checker:  fakeChecker2,
+				Checker:  checker2,
 				Interval: testCheckInterval,
 				Fatal:    false,
 			},
@@ -242,27 +241,27 @@ func TestStartRunner(t *testing.T) {
 
 		// Second checker should've failed
 		Expect(h.states[cfgs[1].Name].Status).To(Equal("failed"))
-		Expect(h.states[cfgs[1].Name].Err).To(Equal(fakeChecker2.ReturnArg1))
+		Expect(h.states[cfgs[1].Name].Err).To(Equal(checker2.ReturnArg1))
 
 		// Since nothing has failed, healthcheck should _not_ be in failed state
 		Expect(h.failed).To(BeFalse())
 	})
 
 	t.Run("Happy path - 1 checker fails (fatal)", func(t *testing.T) {
-		fakeChecker1 := &FakeChecker{}
-		fakeChecker2 := &FakeChecker{}
-		fakeChecker2.ReturnArg1 = errors.New("something failed")
+		checker1 := &fakeChecker{}
+		checker2 := &fakeChecker{}
+		checker2.ReturnArg1 = errors.New("something failed")
 
 		cfgs := []*Config{
 			&Config{
 				Name:     "foo",
-				Checker:  fakeChecker1,
+				Checker:  checker1,
 				Interval: testCheckInterval,
 				Fatal:    false,
 			},
 			&Config{
 				Name:     "bar",
-				Checker:  fakeChecker2,
+				Checker:  checker2,
 				Interval: testCheckInterval,
 				Fatal:    true,
 			},
@@ -286,7 +285,7 @@ func TestStartRunner(t *testing.T) {
 
 		// Second checker should've failed
 		Expect(h.states[cfgs[1].Name].Status).To(Equal("failed"))
-		Expect(h.states[cfgs[1].Name].Err).To(Equal(fakeChecker2.ReturnArg1))
+		Expect(h.states[cfgs[1].Name].Err).To(Equal(checker2.ReturnArg1))
 
 		// Since second checker has failed fatally, global healthcheck state should be failed as well
 		Expect(h.failed).To(BeTrue())
