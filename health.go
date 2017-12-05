@@ -80,12 +80,17 @@ type Health struct {
 // New returns a new instance of the Health struct.
 func New() *Health {
 	return &Health{
-		Logger:     log.NewMockLogger(),
+		Logger:     log.NewDefaultLogger(),
 		configs:    make([]*Config, 0),
 		states:     make(map[string]State, 0),
 		tickers:    make(map[string]*time.Ticker, 0),
 		statesLock: sync.Mutex{},
 	}
+}
+
+// DisableLogging will disable all logging by inserting the noop logger
+func (h *Health) DisableLogging() {
+	h.Logger = log.NewNoopLogger()
 }
 
 // AddChecks is used for adding multiple check definitions at once (as opposed
