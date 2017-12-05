@@ -1,5 +1,6 @@
-go-health
-=========
+<img align="right" src="images/go-health.svg">
+
+# go-health
 A library that enables *async* dependency health checking for services running on an orchastrated container platform such as kubernetes or mesos.
 
 ## Why is this important?
