@@ -2,28 +2,19 @@ package health
 
 import (
 	"fmt"
-	"testing"
 	"time"
+
+	"github.com/InVisionApp/go-health/fakes"
+	"github.com/InVisionApp/go-health/log"
 )
 
-type fakeChecker struct {
-	ReturnArg0  interface{}
-	ReturnArg1  error
-	Invocations int
-}
-
-func (f *fakeChecker) Status() (interface{}, error) {
-	f.Invocations++
-	return f.ReturnArg0, f.ReturnArg1
-}
-
-func setupRunners(t *testing.T, cfgs []*Config) (*Health, []*Config, error) {
+func setupRunners(cfgs []*Config, logger log.ILogger) (*Health, []*Config, error) {
 	h := New()
 	testCheckInterval := time.Duration(10) * time.Millisecond
 
 	if cfgs == nil {
-		checker1 := &fakeChecker{}
-		checker2 := &fakeChecker{}
+		checker1 := &fakes.FakeICheckable{}
+		checker2 := &fakes.FakeICheckable{}
 
 		cfgs = []*Config{
 			&Config{
@@ -43,6 +34,10 @@ func setupRunners(t *testing.T, cfgs []*Config) (*Health, []*Config, error) {
 
 	if err := h.AddChecks(cfgs); err != nil {
 		return nil, nil, err
+	}
+
+	if logger != nil {
+		h.Logger = logger
 	}
 
 	if err := h.Start(); err != nil {

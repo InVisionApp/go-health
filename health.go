@@ -3,10 +3,13 @@ package health
 import (
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 	"time"
+
+	"github.com/InVisionApp/go-health/log"
 )
+
+//go:generate counterfeiter -o ./fakes/icheckable.go . ICheckable
 
 var (
 	// ErrNoAddCfgWhenActive is returned when you attempt to add check(s) to an already active healthcheck instance
@@ -63,7 +66,7 @@ type State struct {
 
 // Health contains internal go-health internal structures
 type Health struct {
-	Logger ILogger
+	Logger log.ILogger
 
 	active bool // indicates whether the healthcheck is actively running
 	failed bool // indicates whether the healthcheck has encountered a fatal error in one of its deps
@@ -77,7 +80,7 @@ type Health struct {
 // New returns a new instance of the Health struct.
 func New() *Health {
 	return &Health{
-		Logger:     newMockLogger(),
+		Logger:     log.NewMockLogger(),
 		configs:    make([]*Config, 0),
 		states:     make(map[string]State, 0),
 		tickers:    make(map[string]*time.Ticker, 0),
@@ -188,8 +191,6 @@ func (h *Health) StateMapInterface() (map[string]interface{}, bool, error) {
 }
 
 func (h *Health) startRunner(cfg *Config, ticker *time.Ticker) error {
-	log.Printf("Ticker %v starting", cfg.Name)
-
 	go func() {
 		for range ticker.C {
 			data, err := cfg.Checker.Status()
@@ -220,9 +221,10 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker) error {
 
 			h.safeUpdateState(stateEntry)
 		}
+
+		h.Logger.Debug("Checker exiting", map[string]interface{}{"name": cfg.Name})
 	}()
 
-	h.Logger.Debug("Checker exiting", map[string]interface{}{"name": cfg.Name})
 	return nil
 }
 

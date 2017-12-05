@@ -1,6 +1,6 @@
-package health
+package log
 
-//go:generate counterfeiter -o health_test_fake_ilogger.go . ILogger
+//go:generate counterfeiter -o fakes/ilogger.go . ILogger
 
 // ILogger interface allows you to use a custom logger. Since the `log` pkg does
 // not expose an interface for a logger (and there is no "accepted" interface),
@@ -15,9 +15,9 @@ type ILogger interface {
 
 type mockLogger struct{}
 
-// We use this noop logger internally only if Logger was not updated to use a
-// user supplied logger.
-func newMockLogger() *mockLogger {
+// NewMockLogger creates a noop logger that is used internally by the health pkg
+// when the user has not supplied their own logger.
+func NewMockLogger() *mockLogger {
 	return &mockLogger{}
 }
 
