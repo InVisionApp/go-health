@@ -60,7 +60,7 @@ type Config struct {
 type State struct {
 	Name   string `json:"name"`
 	Status string `json:"status"`
-	Err    error  `json:"error,omitempty"`
+	Err    string `json:"error,omitempty"`
 	// contains JSON message (that can be marshalled)
 	Details   interface{} `json:"details,omitempty"`
 	CheckTime time.Time   `json:"check_time"`
