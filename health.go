@@ -80,7 +80,7 @@ type Health struct {
 // New returns a new instance of the Health struct.
 func New() *Health {
 	return &Health{
-		Logger:     log.NewMockLogger(),
+		Logger:     log.NewDefaultLogger(),
 		configs:    make([]*Config, 0),
 		states:     make(map[string]State, 0),
 		tickers:    make(map[string]*time.Ticker, 0),
