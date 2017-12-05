@@ -47,7 +47,7 @@ func TestAddChecks(t *testing.T) {
 
 	t.Run("Should error if healthcheck is already running", func(t *testing.T) {
 		h := New()
-		h.active = true
+		h.active.setTrue()
 		err := h.AddChecks([]*Config{})
 
 		Expect(err).To(HaveOccurred())
@@ -84,7 +84,7 @@ func TestAddCheck(t *testing.T) {
 
 	t.Run("Should error if healthcheck is already running", func(t *testing.T) {
 		h := New()
-		h.active = true
+		h.active.setTrue()
 		err := h.AddCheck(&Config{})
 
 		Expect(err).To(HaveOccurred())
@@ -158,7 +158,7 @@ func TestStart(t *testing.T) {
 		Expect(err).ToNot(HaveOccurred())
 
 		// Set the healthcheck state to active
-		h.active = true
+		h.active.setTrue()
 		err = h.Start()
 		Expect(err).To(Equal(ErrAlreadyRunning))
 	})
@@ -197,7 +197,7 @@ func TestStop(t *testing.T) {
 		Expect(err).ToNot(HaveOccurred())
 
 		// Set the healthcheck state to active
-		h.active = false
+		h.active.setFalse()
 		err = h.Stop()
 		Expect(err).To(Equal(ErrAlreadyStopped))
 	})
@@ -223,7 +223,7 @@ func TestStartRunner(t *testing.T) {
 		}
 
 		// Since nothing has failed, healthcheck should _not_ be in failed state
-		Expect(h.failed).To(BeFalse())
+		Expect(h.failed.val()).To(BeFalse())
 	})
 
 	t.Run("Happy path - 1 checker fails (non-fatal)", func(t *testing.T) {
@@ -265,10 +265,10 @@ func TestStartRunner(t *testing.T) {
 
 		// Second checker should've failed
 		Expect(h.states[cfgs[1].Name].Status).To(Equal("failed"))
-		Expect(h.states[cfgs[1].Name].Err).To(Equal(checker2Error))
+		Expect(h.states[cfgs[1].Name].Err).To(Equal(checker2Error.Error()))
 
 		// Since nothing has failed, healthcheck should _not_ be in failed state
-		Expect(h.failed).To(BeFalse())
+		Expect(h.failed.val()).To(BeFalse())
 	})
 
 	t.Run("Happy path - 1 checker fails (fatal)", func(t *testing.T) {
@@ -310,9 +310,9 @@ func TestStartRunner(t *testing.T) {
 
 		// Second checker should've failed
 		Expect(h.states[cfgs[1].Name].Status).To(Equal("failed"))
-		Expect(h.states[cfgs[1].Name].Err).To(Equal(checker2Err))
+		Expect(h.states[cfgs[1].Name].Err).To(Equal(checker2Err.Error()))
 
 		// Since second checker has failed fatally, global healthcheck state should be failed as well
-		Expect(h.failed).To(BeTrue())
+		Expect(h.failed.val()).To(BeTrue())
 	})
 }

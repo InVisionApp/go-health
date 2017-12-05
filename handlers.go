@@ -6,9 +6,14 @@ import (
 	"net/http"
 )
 
-// NewBasicHandler will return an `http.HandlerFunc` that will write `ok` string + `http.StatusOK` to `rw`` if `h.Failed()`
-// returns `false`; returns `error` + `http.StatusInternalServerError` if
-// `h.Failed()` returns `true`.
+type jsonStatus struct {
+	Message string `json:"message"`
+	Status  string `json:"status"`
+}
+
+// NewBasicHandlerFunc will return an `http.HandlerFunc` that will write `ok`
+// string + `http.StatusOK` to `rw`` if `h.Failed()` returns `false`;
+// returns `error` + `http.StatusInternalServerError` if `h.Failed()` returns `true`.
 func NewBasicHandlerFunc(h IHealth) http.HandlerFunc {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		status := http.StatusOK
@@ -24,34 +29,59 @@ func NewBasicHandlerFunc(h IHealth) http.HandlerFunc {
 	})
 }
 
-// NewJSONHandler will return an `http.HandlerFunc` that will marshal and write the contents of `h.StateMapInterface()` to
-// `rw` and set status code to `http.StatusOK` if `h.Failed()` is `false` OR
-// set status code to `http.StatusInternalServerError` if `h.Failed` is `true`.
-func NewJSONHandler(h IHealth) http.HandlerFunc {
+// NewJSONHandlerFunc will return an `http.HandlerFunc` that will marshal and
+// write the contents of `h.StateMapInterface()` to `rw` and set status code to
+//  `http.StatusOK` if `h.Failed()` is `false` OR set status code to
+// `http.StatusInternalServerError` if `h.Failed` is `true`.
+func NewJSONHandlerFunc(h IHealth) http.HandlerFunc {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		status := http.StatusOK
+		states, failed, err := h.State()
+		if err != nil {
+			writeJSONStatus(rw, "error", fmt.Sprintf("Unable to fetch states: %v", err), http.StatusOK)
+			return
+		}
+
+		// There may be an _initial_ delay in display healthcheck data as the
+		// healthchecks will only begin firing at "initialTime + checkIntervalTime"
+		if len(states) == 0 {
+			writeJSONStatus(rw, "ok", "Healthcheck spinning up", http.StatusOK)
+			return
+		}
+
 		msg := "ok"
-		state, failed, _ := h.State()
+		statusCode := http.StatusOK
+
 		if failed {
-			status = http.StatusInternalServerError
 			msg = "failed"
+			statusCode = http.StatusInternalServerError
 		}
 
 		fullBody := map[string]interface{}{
 			"status":  msg,
-			"details": state,
+			"details": states,
 		}
 
-		stateJSON, err := json.Marshal(fullBody)
+		data, err := json.Marshal(fullBody)
 		if err != nil {
-			stateJSON = []byte(fmt.Sprintf(
-				`{
-					"status": "error",
-					"details": "failed to marshal state details: %v"
-				}`, err))
+			writeJSONStatus(rw, "error", fmt.Sprintf("Failed to marshal state data: %v", err), http.StatusOK)
+			return
 		}
 
-		rw.WriteHeader(status)
-		rw.Write(stateJSON)
+		writeJSONResponse(rw, statusCode, data)
 	})
+}
+
+func writeJSONStatus(rw http.ResponseWriter, status, message string, statusCode int) {
+	jsonData, _ := json.Marshal(&jsonStatus{
+		Message: message,
+		Status:  status,
+	})
+
+	writeJSONResponse(rw, statusCode, jsonData)
+}
+
+func writeJSONResponse(rw http.ResponseWriter, statusCode int, content []byte) {
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(statusCode)
+	rw.Write(content)
 }
