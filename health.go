@@ -34,6 +34,7 @@ type IHealth interface {
 	Start() error
 	Stop() error
 	State() (map[string]State, bool, error)
+	Failed() bool
 	StateMapInterface() (map[string]interface{}, bool, error)
 }
 
@@ -43,7 +44,7 @@ type IHealth interface {
 type ICheckable interface {
 	// Status allows you to return additional data as an `interface{}` and `error`
 	// to signify that the check has failed. If `interface{}` is non-nil, it will
-	// be exposed under `State.Data` for that particular check.
+	// be exposed under `State.Details` for that particular check.
 	Status() (interface{}, error)
 }
 
@@ -57,19 +58,20 @@ type Config struct {
 
 // The State struct contains the results of the latest run of a particular check.
 type State struct {
-	Name      string
-	Status    string
-	Err       error
-	Data      interface{} // contains JSON message (that can be marshalled)
-	Timestamp time.Time
+	Name   string `json:"name"`
+	Status string `json:"status"`
+	Err    error  `json:"error,omitempty"`
+	// contains JSON message (that can be marshalled)
+	Details   interface{} `json:"details,omitempty"`
+	CheckTime time.Time   `json:"check_time"`
 }
 
 // Health contains internal go-health internal structures
 type Health struct {
 	Logger log.ILogger
 
-	active bool // indicates whether the healthcheck is actively running
-	failed bool // indicates whether the healthcheck has encountered a fatal error in one of its deps
+	active *sBool // indicates whether the healthcheck is actively running
+	failed *sBool // indicates whether the healthcheck has encountered a fatal error in one of its deps
 
 	configs    []*Config
 	states     map[string]State
@@ -84,6 +86,8 @@ func New() *Health {
 		configs:    make([]*Config, 0),
 		states:     make(map[string]State, 0),
 		tickers:    make(map[string]*time.Ticker, 0),
+		active:     NewBool(),
+		failed:     NewBool(),
 		statesLock: sync.Mutex{},
 	}
 }
@@ -96,7 +100,7 @@ func (h *Health) DisableLogging() {
 // AddChecks is used for adding multiple check definitions at once (as opposed
 // to adding them sequentially via `AddCheck()`).
 func (h *Health) AddChecks(cfgs []*Config) error {
-	if h.active {
+	if h.active.val() {
 		return ErrNoAddCfgWhenActive
 	}
 
@@ -111,7 +115,7 @@ func (h *Health) AddChecks(cfgs []*Config) error {
 // AddCheck is used for adding a single check definition to the current health
 // instance.
 func (h *Health) AddCheck(cfg *Config) error {
-	if h.active {
+	if h.active.val() {
 		return ErrNoAddCfgWhenActive
 	}
 
@@ -122,7 +126,7 @@ func (h *Health) AddCheck(cfg *Config) error {
 // Start will start all of the defined health checks. Each of the checks run in
 // their own goroutines (as `time.Ticker`).
 func (h *Health) Start() error {
-	if h.active {
+	if h.active.val() {
 		return ErrAlreadyRunning
 	}
 
@@ -138,7 +142,7 @@ func (h *Health) Start() error {
 	}
 
 	// Checkers are now actively running
-	h.active = true
+	h.active.setTrue()
 
 	return nil
 }
@@ -146,7 +150,7 @@ func (h *Health) Start() error {
 // Stop will cause all of the running health checks to be stopped. Additionally,
 // all existing check states will be reset.
 func (h *Health) Stop() error {
-	if !h.active {
+	if !h.active.val() {
 		return ErrAlreadyStopped
 	}
 
@@ -170,7 +174,13 @@ func (h *Health) Stop() error {
 //
 // The map key is the name of the check.
 func (h *Health) State() (map[string]State, bool, error) {
-	return h.safeGetStates(), h.failed, nil
+	return h.safeGetStates(), h.failed.val(), nil
+}
+
+// Failed will return the basic state of overall health. This should be used when
+// details about the failure are not needed
+func (h *Health) Failed() bool {
+	return h.failed.val()
 }
 
 // StateMapInterface returns a "pretty"/"curated" version of what the `State()`
@@ -204,8 +214,8 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker) error {
 				Name:      cfg.Name,
 				Status:    "ok",
 				Err:       err,
-				Data:      data,
-				Timestamp: time.Now(),
+				Details:   data,
+				CheckTime: time.Now(),
 			}
 
 			if err != nil {
@@ -221,7 +231,7 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker) error {
 			// Toggle the global state failure if this check is allowed to cause
 			// a complete healthcheck failure.
 			if err != nil && cfg.Fatal {
-				h.failed = true
+				h.failed.setTrue()
 			}
 
 			h.safeUpdateState(stateEntry)
