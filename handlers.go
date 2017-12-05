@@ -41,6 +41,13 @@ func NewJSONHandlerFunc(h IHealth) http.HandlerFunc {
 			return
 		}
 
+		// There may be an _initial_ delay in display healthcheck data as the
+		// healthchecks will only begin firing at "initialTime + checkIntervalTime"
+		if len(states) == 0 {
+			writeJSONStatus(rw, "ok", "Healthcheck spinning up", http.StatusOK)
+			return
+		}
+
 		msg := "ok"
 		statusCode := http.StatusOK
 

@@ -86,8 +86,8 @@ func New() *Health {
 		configs:    make([]*Config, 0),
 		states:     make(map[string]State, 0),
 		tickers:    make(map[string]*time.Ticker, 0),
-		active:     NewBool(),
-		failed:     NewBool(),
+		active:     newBool(),
+		failed:     newBool(),
 		statesLock: sync.Mutex{},
 	}
 }
@@ -213,7 +213,6 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker) error {
 			stateEntry := &State{
 				Name:      cfg.Name,
 				Status:    "ok",
-				Err:       err,
 				Details:   data,
 				CheckTime: time.Now(),
 			}
@@ -225,6 +224,7 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker) error {
 					"err":   err,
 				})
 
+				stateEntry.Err = err.Error()
 				stateEntry.Status = "failed"
 			}
 

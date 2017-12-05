@@ -58,15 +58,15 @@ func NewHTTP(cfg *HTTPConfig) (*HTTP, error) {
 
 // Status is used for performing an HTTP check against a dependency; it satisfies
 // the `ICheckable` interface.
-func (h *HTTP) Status() error {
+func (h *HTTP) Status() (interface{}, error) {
 	resp, err := h.do()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Check if StatusCode matches
 	if resp.StatusCode != h.Config.StatusCode {
-		return fmt.Errorf("Received status code '%v' does not match expected status code '%v'",
+		return nil, fmt.Errorf("Received status code '%v' does not match expected status code '%v'",
 			resp.StatusCode, h.Config.StatusCode)
 	}
 
@@ -74,17 +74,17 @@ func (h *HTTP) Status() error {
 	if h.Config.Expect != "" {
 		data, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return fmt.Errorf("Unable to read response body to perform content expectancy check: %v", err)
+			return nil, fmt.Errorf("Unable to read response body to perform content expectancy check: %v", err)
 		}
 		defer resp.Body.Close()
 
 		if !strings.Contains(string(data), h.Config.Expect) {
-			return fmt.Errorf("Received response body '%v' does not contain expected content '%v'",
+			return nil, fmt.Errorf("Received response body '%v' does not contain expected content '%v'",
 				string(data), h.Config.Expect)
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (h *HTTP) do() (*http.Response, error) {
