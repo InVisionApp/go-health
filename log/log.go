@@ -51,14 +51,14 @@ func pretty(m map[string]interface{}) string {
 	return s[:len(s)-1]
 }
 
-type mockLogger struct{}
+type noopLogger struct{}
 
-// NewMockLogger creates a noop logger that can be used to silence all logging from this library.
-func NewMockLogger() *mockLogger {
-	return &mockLogger{}
+// NewNoopLogger creates a noop logger that can be used to silence all logging from this library.
+func NewNoopLogger() *noopLogger {
+	return &noopLogger{}
 }
 
-func (m *mockLogger) Debug(msg string, args map[string]interface{}) {}
-func (m *mockLogger) Info(msg string, args map[string]interface{})  {}
-func (m *mockLogger) Warn(msg string, args map[string]interface{})  {}
-func (m *mockLogger) Error(msg string, args map[string]interface{}) {}
+func (m *noopLogger) Debug(msg string, args map[string]interface{}) {}
+func (m *noopLogger) Info(msg string, args map[string]interface{})  {}
+func (m *noopLogger) Warn(msg string, args map[string]interface{})  {}
+func (m *noopLogger) Error(msg string, args map[string]interface{}) {}

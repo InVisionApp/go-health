@@ -88,6 +88,11 @@ func New() *Health {
 	}
 }
 
+// DisableLogging will disable all logging by inserting the noop logger
+func (h *Health) DisableLogging() {
+	h.Logger = log.NewNoopLogger()
+}
+
 // AddChecks is used for adding multiple check definitions at once (as opposed
 // to adding them sequentially via `AddCheck()`).
 func (h *Health) AddChecks(cfgs []*Config) error {
