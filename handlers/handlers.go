@@ -35,7 +35,8 @@ func NewBasicHandlerFunc(h health.IHealth) http.HandlerFunc {
 // write the contents of `h.StateMapInterface()` to `rw` and set status code to
 //  `http.StatusOK` if `h.Failed()` is `false` OR set status code to
 // `http.StatusInternalServerError` if `h.Failed` is `true`.
-func NewJSONHandlerFunc(h health.IHealth) http.HandlerFunc {
+// It also accepts a set of optional custom fields to be added to the final JSON body
+func NewJSONHandlerFunc(h health.IHealth, custom map[string]interface{}) http.HandlerFunc {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		states, failed, err := h.State()
 		if err != nil {
@@ -43,15 +44,15 @@ func NewJSONHandlerFunc(h health.IHealth) http.HandlerFunc {
 			return
 		}
 
+		msg := "ok"
+		statusCode := http.StatusOK
+
 		// There may be an _initial_ delay in display healthcheck data as the
 		// healthchecks will only begin firing at "initialTime + checkIntervalTime"
 		if len(states) == 0 {
-			writeJSONStatus(rw, "ok", "Healthcheck spinning up", http.StatusOK)
+			writeJSONStatus(rw, msg, "Healthcheck spinning up", statusCode)
 			return
 		}
-
-		msg := "ok"
-		statusCode := http.StatusOK
 
 		if failed {
 			msg = "failed"
@@ -61,6 +62,12 @@ func NewJSONHandlerFunc(h health.IHealth) http.HandlerFunc {
 		fullBody := map[string]interface{}{
 			"status":  msg,
 			"details": states,
+		}
+
+		for k, v := range custom {
+			if k != "status" && k != "details" {
+				fullBody[k] = v
+			}
 		}
 
 		data, err := json.Marshal(fullBody)
