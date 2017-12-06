@@ -1,4 +1,4 @@
-package logger
+package loggers
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 
 //go:generate counterfeiter -o fakes/ilogger.go . ILogger
 
-// ILogger interface allows you to use a custom logger. Since the `logger` pkg does
+// ILogger interface allows you to use a custom logger. Since the `loggers` pkg does
 // not expose an interface for a logger (and there is no "accepted" interface),
 // we roll our own and supplement it with some helpers/shims for common logging
 // libraries such as `logrus`. See [DOC.md(DOCS.md#Logging).
