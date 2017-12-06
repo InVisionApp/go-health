@@ -5,10 +5,9 @@ import (
 	"time"
 
 	"github.com/InVisionApp/go-health/fakes"
-	"github.com/InVisionApp/go-health/log"
 )
 
-func setupRunners(cfgs []*Config, logger log.ILogger) (*Health, []*Config, error) {
+func setupRunners(cfgs []*Config, logger logger.ILogger) (*Health, []*Config, error) {
 	h := New()
 	testCheckInterval := time.Duration(10) * time.Millisecond
 

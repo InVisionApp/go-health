@@ -1,13 +1,13 @@
-package log
+package logger
 
 import (
-	"log"
 	"fmt"
+	"log"
 )
 
 //go:generate counterfeiter -o fakes/ilogger.go . ILogger
 
-// ILogger interface allows you to use a custom logger. Since the `log` pkg does
+// ILogger interface allows you to use a custom logger. Since the `logger` pkg does
 // not expose an interface for a logger (and there is no "accepted" interface),
 // we roll our own and supplement it with some helpers/shims for common logging
 // libraries such as `logrus`. See [DOC.md(DOCS.md#Logging).
@@ -30,11 +30,11 @@ func (m *defaultLogger) Debug(msg string, args map[string]interface{}) {
 	log.Printf("[DEBUG] %s [%s]\n", msg, pretty(args))
 }
 
-func (m *defaultLogger) Info(msg string, args map[string]interface{})  {
+func (m *defaultLogger) Info(msg string, args map[string]interface{}) {
 	log.Printf("[INFO] %s [%s]\n", msg, pretty(args))
 }
 
-func (m *defaultLogger) Warn(msg string, args map[string]interface{})  {
+func (m *defaultLogger) Warn(msg string, args map[string]interface{}) {
 	log.Printf("[WARN] %s [%s]\n", msg, pretty(args))
 }
 
