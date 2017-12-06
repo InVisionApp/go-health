@@ -1,9 +1,11 @@
-package health
+package handlers
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/InVisionApp/go-health"
 )
 
 type jsonStatus struct {
@@ -14,7 +16,7 @@ type jsonStatus struct {
 // NewBasicHandlerFunc will return an `http.HandlerFunc` that will write `ok`
 // string + `http.StatusOK` to `rw`` if `h.Failed()` returns `false`;
 // returns `error` + `http.StatusInternalServerError` if `h.Failed()` returns `true`.
-func NewBasicHandlerFunc(h IHealth) http.HandlerFunc {
+func NewBasicHandlerFunc(h health.IHealth) http.HandlerFunc {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		status := http.StatusOK
 		body := "ok"
@@ -33,7 +35,7 @@ func NewBasicHandlerFunc(h IHealth) http.HandlerFunc {
 // write the contents of `h.StateMapInterface()` to `rw` and set status code to
 //  `http.StatusOK` if `h.Failed()` is `false` OR set status code to
 // `http.StatusInternalServerError` if `h.Failed` is `true`.
-func NewJSONHandlerFunc(h IHealth) http.HandlerFunc {
+func NewJSONHandlerFunc(h health.IHealth) http.HandlerFunc {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		states, failed, err := h.State()
 		if err != nil {

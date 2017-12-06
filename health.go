@@ -35,7 +35,6 @@ type IHealth interface {
 	Stop() error
 	State() (map[string]State, bool, error)
 	Failed() bool
-	StateMapInterface() (map[string]interface{}, bool, error)
 }
 
 // The ICheckable interface is implemented by a number of bundled checkers such
@@ -181,28 +180,6 @@ func (h *Health) State() (map[string]State, bool, error) {
 // details about the failure are not needed
 func (h *Health) Failed() bool {
 	return h.failed.val()
-}
-
-// StateMapInterface returns a "pretty"/"curated" version of what the `State()`
-// method returns, a bool indicating whether the healthcheck has fully failed
-// and a potential error. The returned data structure can be used for injecting
-// additional elements into the structure before marshalling it to JSON for
-// display.
-//
-// Example (w/o error checks):
-// ```
-// stateMap, _ := hc.StateMapInterface()
-// stateMap["version"] = "foo"
-// data, _ := json.Marshal(stateMap)
-// rw.Header().Set("Content-Type", "application/json")
-// rw.WriteHeader(http.StatusOK)
-// rw.Write(data)
-// ```
-//
-// Note: The key in the map is the name of the check. The value in the map
-//       is the data that is returned from the `ICheckable.Status()`.
-func (h *Health) StateMapInterface() (map[string]interface{}, bool, error) {
-	panic("not implemented")
 }
 
 func (h *Health) startRunner(cfg *Config, ticker *time.Ticker) error {
