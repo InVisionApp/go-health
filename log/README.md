@@ -7,10 +7,16 @@ This has to be done since the `log` package in the standard library does not pro
 ## Options
 By default, `health` will utilize the standard library `log` package.
 
-If you do not wish to perform any logging, you can update the `h.Logger` to point to a noop logger: `h.Logger = log.NewNoopLogger()`.
+If you do not wish for `health` to perform any sort of logging, you can update `h.Logger` to point to a noop logger: `h.Logger = log.NewNoopLogger()`.
 
 ## Example w/ logrus
 ```golang
+import (
+    "github.com/InVisionApp/go-health"
+    "github.com/InVisionApp/go-health/log"
+    "github.com/InVisionApp/go-health/checkers"
+)
+
 // create and configure a health instance
 h := health.New()
 h.AddChecks(...)
@@ -21,6 +27,24 @@ h.Logger = log.NewLoggerLogrus(nil)
 // Or alternatively, you can provide your own logrus instance
 myLogrus := logrus.WithField("foo", "bar")
 h.Logger = log.NewLoggerLogrus(myLogrus)
+
+// Start healthcheck
+h.Start()
+```
+
+## Example w/ Noop logger
+```golang
+import (
+    "github.com/InVisionApp/go-health"
+    "github.com/InVisionApp/go-health/log"
+    "github.com/InVisionApp/go-health/checkers"
+)
+
+// create and configure a health instance
+h := health.New()
+h.AddChecks(...)
+
+h.Logger = log.NewNoopLogger()
 
 // Start healthcheck
 h.Start()
