@@ -31,7 +31,7 @@ This library:
 * Allows you to define warning and fatal thresholds.
 * Will run your dependency checks on a given interval, in the background.
 * Exposes a way for you to gather the check results in a *fast* and *thread-safe* manner to help determine the final status of your `/status` endpoint.
-* Comes bundled w/ a number of checkers for well-known dependencies such as `MySQL`, `PostgreSQL`, `Redis`, `HTTP`.
+* Comes bundled w/ a number of checkers for well-known dependencies such as `MySQL`, `PostgreSQL`, `Redis`, `HTTP`, `Mongo`.
 * Makes it simple to implement and provide your own checkers (by adhering to the checker interface).
 * Is test-friendly
     + Provides an easy way to disable dependency health checking.
@@ -39,67 +39,52 @@ This library:
 
 ## Example
 
-1. Instantiate `health` and provide it with checkers:
+For _full_ examples, look through the [examples dir](examples/)
 
-```go
-hc := health.New()
+1. Create an instance of `health` and configure a checker (or two)
 
-// Create a MySQL checker
-mysqlChecker, err := checkers.NewMySQL(
-    &checkers.MySQL{
-        User: mysqlUsername,
-        Password: mysqlPassword,
-        Host: mysqlHost,
-        Port: mysqlPort,
-        DB: mysqlDB,
-        Query: `SELECT id FROM table LIMIT 1`,
-        QueryTimeout: time.Duration(1) * time.Second, // Optional
-        Timeout: time.Duration(5) * time.Second, // Optional
-    }
+```golang
+import (
+	health "github.com/InVisionApp/go-health"
+	"github.com/InVisionApp/go-health/checkers"
+	"github.com/InVisionApp/go-health/handlers"
 )
-if err != nil {
-    log.Fatalf("Unable to instantiate MySQL checker: %v", err)
-}
 
-if err := hc.AddCheckers([]*HealthConfig{
+// Create a new health instance
+h := health.New()
+
+// Create a checker
+myURL, _ := url.Parse("https://google.com")
+myCheck, _ := checkers.NewHTTP(&checkers.HTTPConfig{
+    URL: myURL,
+})
+```
+
+2. Register your check with your `health` instance
+
+```golang
+h.AddChecks([]*health.Config{
     {
-        Name: "my-main-mysql-dep",
-        Checker: mysqlChecker,
-        Fatal: true // Whether the failure of this check should cause the entire healthcheck to fail
-        Interval: time.Duration(3) * time.Second,
+        Name:     "my-check",
+        Checker:  myCheck,
+        Interval: time.Duration(2) * time.Second,
+        Fatal:    true,
     },
-}); err != nil {
-    log.Fatalf("Unable to complete adding checker configs: %v", err)
-}
+)
 ```
 
-2. Start the healthchecker and pass it to the API
+3. Start the healthcheck
 
-```go
-if err := hc.Start(); err != nil {
-    log.Fatalf("Unable to start healthchecker: %v", err)
-}
-
-a := api.New(hc)
-log.Fatal(api.ListenAndServe())
+```golang
+h.Start()
 ```
 
-3. Tie the built-in status handler to a route in your API:
-
-```
-routes := mux.NewRouter().StrictSlash(true)
-
-routes.Handle(
-    "/status", http.HandlerFunc(a.hc.HandlerJSON),
-).Methods("GET")
-
-// or use `a.hc.HandlerBasic` for simple ok|error non-JSON return
-```
+From here on, you can either configure an endpoint such as `/healthcheck` to use a built-in handler such as `handlers.NewJSONHandlerFunc()` or get the current health state of all your deps by traversing the data returned by `h.State()`.
 
 ## Additional Documentation
-* API documentation
-* Bundled checker documentation
-* Examples
+* [Examples](/examples)
+* [Checkers](/checkers)
+* [Logging](/log)
 
 ## Contributing
 All PR's are welcome, as long as they are well tested. Follow the typical fork->branch->pr flow.
