@@ -1,3 +1,5 @@
+// This is a simple example demonstrating the simplest steps necessary for
+// integrating the healthcheck lib into a basic HTTP service.
 package main
 
 import (
@@ -8,6 +10,7 @@ import (
 
 	health "github.com/InVisionApp/go-health"
 	"github.com/InVisionApp/go-health/checkers"
+	"github.com/InVisionApp/go-health/handlers"
 )
 
 func main() {
@@ -49,6 +52,6 @@ func main() {
 	log.Println("Server listening on :8080")
 
 	// Define a healthcheck endpoint and use the built-in JSON handler
-	http.HandleFunc("/healthcheck", health.NewJSONHandlerFunc(h))
+	http.HandleFunc("/healthcheck", handlers.NewJSONHandlerFunc(h))
 	http.ListenAndServe(":8080", nil)
 }
