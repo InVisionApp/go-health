@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/InVisionApp/go-health/log"
+	"github.com/InVisionApp/go-health/loggers"
 )
 
 //go:generate counterfeiter -o ./fakes/icheckable.go . ICheckable
@@ -60,14 +60,14 @@ type State struct {
 	Name   string `json:"name"`
 	Status string `json:"status"`
 	Err    string `json:"error,omitempty"`
-	// contains JSON message (that can be marshalled)
+	// contains JSON message (that can be marshaled)
 	Details   interface{} `json:"details,omitempty"`
 	CheckTime time.Time   `json:"check_time"`
 }
 
 // Health contains internal go-health internal structures
 type Health struct {
-	Logger log.ILogger
+	Logger loggers.ILogger
 
 	active *sBool // indicates whether the healthcheck is actively running
 	failed *sBool // indicates whether the healthcheck has encountered a fatal error in one of its deps
@@ -81,19 +81,19 @@ type Health struct {
 // New returns a new instance of the Health struct.
 func New() *Health {
 	return &Health{
-		Logger:     log.NewDefaultLogger(),
+		Logger:     loggers.NewBasic(),
 		configs:    make([]*Config, 0),
 		states:     make(map[string]State, 0),
 		tickers:    make(map[string]*time.Ticker, 0),
 		active:     newBool(),
-		failed:     newBool(),
+		failed:     newBool(), // init as false
 		statesLock: sync.Mutex{},
 	}
 }
 
 // DisableLogging will disable all logging by inserting the noop logger
 func (h *Health) DisableLogging() {
-	h.Logger = log.NewNoopLogger()
+	h.Logger = loggers.NewNoop()
 }
 
 // AddChecks is used for adding multiple check definitions at once (as opposed

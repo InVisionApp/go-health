@@ -84,7 +84,7 @@ From here on, you can either configure an endpoint such as `/healthcheck` to use
 ## Additional Documentation
 * [Examples](/examples)
 * [Checkers](/checkers)
-* [Logging](/log)
+* [Logging](/loggers)
 
 ## Contributing
 All PR's are welcome, as long as they are well tested. Follow the typical fork->branch->pr flow.
