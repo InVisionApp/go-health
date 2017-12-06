@@ -183,35 +183,45 @@ func (h *Health) Failed() bool {
 }
 
 func (h *Health) startRunner(cfg *Config, ticker *time.Ticker) error {
+
+	// function to execute and collect check data
+	checkFunc := func() {
+		data, err := cfg.Checker.Status()
+
+		stateEntry := &State{
+			Name:      cfg.Name,
+			Status:    "ok",
+			Details:   data,
+			CheckTime: time.Now(),
+		}
+
+		if err != nil {
+			h.Logger.Error("healthcheck has failed", map[string]interface{}{
+				"check": cfg.Name,
+				"fatal": cfg.Fatal,
+				"err":   err,
+			})
+
+			stateEntry.Err = err.Error()
+			stateEntry.Status = "failed"
+		}
+
+		// Toggle the global state failure if this check is allowed to cause
+		// a complete healthcheck failure.
+		if err != nil && cfg.Fatal {
+			h.failed.setTrue()
+		}
+
+		h.safeUpdateState(stateEntry)
+	}
+
 	go func() {
+		// execute once so that it is immediate
+		checkFunc()
+
+		// all following executions
 		for range ticker.C {
-			data, err := cfg.Checker.Status()
-
-			stateEntry := &State{
-				Name:      cfg.Name,
-				Status:    "ok",
-				Details:   data,
-				CheckTime: time.Now(),
-			}
-
-			if err != nil {
-				h.Logger.Error("healthcheck has failed", map[string]interface{}{
-					"check": cfg.Name,
-					"fatal": cfg.Fatal,
-					"err":   err,
-				})
-
-				stateEntry.Err = err.Error()
-				stateEntry.Status = "failed"
-			}
-
-			// Toggle the global state failure if this check is allowed to cause
-			// a complete healthcheck failure.
-			if err != nil && cfg.Fatal {
-				h.failed.setTrue()
-			}
-
-			h.safeUpdateState(stateEntry)
+			checkFunc()
 		}
 
 		h.Logger.Debug("Checker exiting", map[string]interface{}{"name": cfg.Name})
