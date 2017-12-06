@@ -7,7 +7,7 @@ This has to be done since the `loggers` package in the standard library does not
 ## Options
 By default, `health` will utilize the standard library `loggers` package.
 
-If you do not wish for `health` to perform any sort of logging, you can update `h.Logger` to point to a noop logger: `h.Logger = loggers.NewNoopLogger()`.
+If you do not wish for `health` to perform any sort of logging, you can update `h.Logger` to point to a noop logger: `h.Logger = loggers.NewNoop()`.
 
 ## Example w/ logrus
 ```golang
@@ -44,7 +44,7 @@ import (
 h := health.New()
 h.AddChecks(...)
 
-h.Logger = loggers.NewNoopLogger()
+h.Logger = loggers.NewNoop()
 
 // Start healthcheck
 h.Start()

@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"github.com/InVisionApp/go-health/fakes"
+	"github.com/InVisionApp/go-health/loggers"
 )
 
-func setupRunners(cfgs []*Config, logger logger.ILogger) (*Health, []*Config, error) {
+func setupRunners(cfgs []*Config, logger loggers.ILogger) (*Health, []*Config, error) {
 	h := New()
 	testCheckInterval := time.Duration(10) * time.Millisecond
 
@@ -16,13 +17,13 @@ func setupRunners(cfgs []*Config, logger logger.ILogger) (*Health, []*Config, er
 		checker2 := &fakes.FakeICheckable{}
 
 		cfgs = []*Config{
-			&Config{
+			{
 				Name:     "foo",
 				Checker:  checker1,
 				Interval: testCheckInterval,
 				Fatal:    false,
 			},
-			&Config{
+			{
 				Name:     "bar",
 				Checker:  checker2,
 				Interval: testCheckInterval,
