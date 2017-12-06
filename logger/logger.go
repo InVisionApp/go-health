@@ -18,27 +18,27 @@ type ILogger interface {
 	Error(msg string, args map[string]interface{})
 }
 
-type defaultLogger struct{}
+type basic struct{}
 
-// NewDefaultLogger creates a simple logger that is used internally by the health pkg
+// NewBasic creates a simple logger that is used internally by the health pkg
 // when the user has not supplied their own logger.
-func NewDefaultLogger() *defaultLogger {
-	return &defaultLogger{}
+func NewBasic() *basic {
+	return &basic{}
 }
 
-func (m *defaultLogger) Debug(msg string, args map[string]interface{}) {
+func (m *basic) Debug(msg string, args map[string]interface{}) {
 	log.Printf("[DEBUG] %s [%s]\n", msg, pretty(args))
 }
 
-func (m *defaultLogger) Info(msg string, args map[string]interface{}) {
+func (m *basic) Info(msg string, args map[string]interface{}) {
 	log.Printf("[INFO] %s [%s]\n", msg, pretty(args))
 }
 
-func (m *defaultLogger) Warn(msg string, args map[string]interface{}) {
+func (m *basic) Warn(msg string, args map[string]interface{}) {
 	log.Printf("[WARN] %s [%s]\n", msg, pretty(args))
 }
 
-func (m *defaultLogger) Error(msg string, args map[string]interface{}) {
+func (m *basic) Error(msg string, args map[string]interface{}) {
 	log.Printf("[ERROR] %s [%s]\n", msg, pretty(args))
 }
 
@@ -51,14 +51,14 @@ func pretty(m map[string]interface{}) string {
 	return s[:len(s)-1]
 }
 
-type noopLogger struct{}
+type noop struct{}
 
-// NewNoopLogger creates a noop logger that can be used to silence all logging from this library.
-func NewNoopLogger() *noopLogger {
-	return &noopLogger{}
+// NewNoop creates a noop logger that can be used to silence all logging from this library.
+func NewNoop() *noop {
+	return &noop{}
 }
 
-func (m *noopLogger) Debug(msg string, args map[string]interface{}) {}
-func (m *noopLogger) Info(msg string, args map[string]interface{})  {}
-func (m *noopLogger) Warn(msg string, args map[string]interface{})  {}
-func (m *noopLogger) Error(msg string, args map[string]interface{}) {}
+func (m *noop) Debug(msg string, args map[string]interface{}) {}
+func (m *noop) Info(msg string, args map[string]interface{})  {}
+func (m *noop) Warn(msg string, args map[string]interface{})  {}
+func (m *noop) Error(msg string, args map[string]interface{}) {}
