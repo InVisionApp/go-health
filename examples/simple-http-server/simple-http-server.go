@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"time"
 
-	health "github.com/InVisionApp/go-health"
+	"github.com/InVisionApp/go-health"
 	"github.com/InVisionApp/go-health/checkers"
 	"github.com/InVisionApp/go-health/handlers"
 )
@@ -52,6 +52,6 @@ func main() {
 	log.Println("Server listening on :8080")
 
 	// Define a healthcheck endpoint and use the built-in JSON handler
-	http.HandleFunc("/healthcheck", handlers.NewJSONHandlerFunc(h))
+	http.HandleFunc("/healthcheck", handlers.NewJSONHandlerFunc(h, nil))
 	http.ListenAndServe(":8080", nil)
 }

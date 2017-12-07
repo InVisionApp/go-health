@@ -135,8 +135,8 @@ func TestStart(t *testing.T) {
 		time.Sleep(time.Duration(15) * time.Millisecond)
 
 		// Both runners should've ran
-		Expect(checker1.StatusCallCount()).To(Equal(1), "Checker should have been executed")
-		Expect(checker2.StatusCallCount()).To(Equal(1), "Checker should have been executed")
+		Expect(checker1.StatusCallCount()).To(Equal(2), "Checker should have been executed")
+		Expect(checker2.StatusCallCount()).To(Equal(2), "Checker should have been executed")
 
 		// Both runners should've recorded their state
 		Expect(h.states).To(HaveKey("foo"))
@@ -250,7 +250,6 @@ func TestStartRunner(t *testing.T) {
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(h).ToNot(BeNil())
-		Expect(h.states).To(BeEmpty())
 
 		// Brittle...
 		time.Sleep(time.Duration(15) * time.Millisecond)
@@ -295,7 +294,6 @@ func TestStartRunner(t *testing.T) {
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(h).ToNot(BeNil())
-		Expect(h.states).To(BeEmpty())
 
 		// Brittle...
 		time.Sleep(time.Duration(15) * time.Millisecond)
