@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/InVisionApp/go-health.svg?token=KosA43m1X3ikri8JEukQ&branch=master)](https://travis-ci.com/InVisionApp/go-health)
+
 <img align="right" src="images/go-health.svg" width="200">
 
 # go-health
