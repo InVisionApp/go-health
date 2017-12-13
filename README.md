@@ -20,7 +20,7 @@ While this can be achieved by simply exposing a `/status` endpoint that perfoms 
     + **Malicious scenario**
         + Loading up any basic HTTP benchmarking tool and pointing it at your `/status` endpoint could choke your dependencies (and potentially your service).
 
-With that said, not everyone _needs_ synchronous checks. If your service has one dependency (and that is unlikely to change), it is trivial to write a basic, synchronous check and it will probably suffice.
+With that said, not everyone _needs_ asynchronous checks. If your service has one dependency (and that is unlikely to change), it is trivial to write a basic, synchronous check and it will probably suffice.
 
 However, if you anticipate that your service will have several dependencies, with varying degrees of complexity for determing their health state - you should probably think about introducing asynchronous health checks.
 
