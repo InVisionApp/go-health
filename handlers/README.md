@@ -19,7 +19,7 @@ h := health.New()
 h.AddChecks(...)
 
 // Register a new endpoint and have it use a pre-built handler
-http.HandleFunc("/healthcheck", handlers.NewJSONHandlerFunc(h))
+http.HandleFunc("/healthcheck", handlers.NewJSONHandlerFunc(h, nil))
 http.ListenAndServe(":8080", nil)
 ```
 
