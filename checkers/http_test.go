@@ -39,7 +39,7 @@ func TestNewHTTP(t *testing.T) {
 	})
 }
 
-func TestStatus(t *testing.T) {
+func TestHTTPStatus(t *testing.T) {
 	RegisterTestingT(t)
 
 	t.Run("Happy path", func(t *testing.T) {
