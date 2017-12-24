@@ -34,4 +34,10 @@ WIP
 WIP
 
 ### Redis
-WIP
+The Redis checker allows allows you to test that your server is either available (by ping), is able to set a value, is able to get a value or all of the above.
+
+To make use of it, instantiate and fill out a `RedisConfig` struct and pass it to `checkers.NewRedis(...)`.
+
+The `RedisConfig` must contain a valid `RedisAuthConfig` and at least _one_ check method (ping, set or get).
+
+Refer to the godocs for additional info.

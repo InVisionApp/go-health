@@ -15,8 +15,8 @@ const (
 
 // RedisConfig is used for configuring the go-redis check.
 //
-// `Client` is _required_
-//   - the actual instance of the redis client
+// `Auth` is _required_
+//   - redis connection/auth config
 // `Ping ` is optional
 //   - the most basic check method, performs a `.Ping()` on the client
 // `Get` is optional
@@ -28,10 +28,17 @@ const (
 //      _all_ of the check methods (ie. perform a ping, set this key and now try
 //      to retrieve that key).
 type RedisConfig struct {
-	Client *redis.Client
-	Ping   bool
-	Set    *RedisSetOptions
-	Get    *RedisGetOptions
+	Auth *RedisAuthConfig
+	Ping bool
+	Set  *RedisSetOptions
+	Get  *RedisGetOptions
+}
+
+// RedisAuthConfig defines how to connect to redis
+type RedisAuthConfig struct {
+	Addr     string // `host:port` format
+	Password string // leave blank if no password
+	DB       int    // leave unset if no specific db
 }
 
 // RedisSetOptions contains attributes that can alter the behavior of the redis
@@ -68,16 +75,30 @@ type RedisGetOptions struct {
 // Redis implements the ICheckable interface
 type Redis struct {
 	Config *RedisConfig
+	client *redis.Client
 }
 
 // NewRedis creates a new `go-redis/redis` checker that can be used w/ `AddChecks()`.
 func NewRedis(cfg *RedisConfig) (*Redis, error) {
+	// validate settings
 	if err := validateRedisConfig(cfg); err != nil {
 		return nil, fmt.Errorf("Unable to validate redis config: %v", err)
 	}
 
+	// try to connect
+	c := redis.NewClient(&redis.Options{
+		Addr:     cfg.Auth.Addr,
+		Password: cfg.Auth.Password, // no password set
+		DB:       cfg.Auth.DB,       // use default DB
+	})
+
+	if _, err := c.Ping().Result(); err != nil {
+		return nil, fmt.Errorf("Unable to establish initial connection to redis: %v", err)
+	}
+
 	return &Redis{
 		Config: cfg,
+		client: c,
 	}, nil
 }
 
@@ -85,20 +106,20 @@ func NewRedis(cfg *RedisConfig) (*Redis, error) {
 // the `ICheckable` interface.
 func (r *Redis) Status() (interface{}, error) {
 	if r.Config.Ping {
-		if _, err := r.Config.Client.Ping().Result(); err != nil {
+		if _, err := r.client.Ping().Result(); err != nil {
 			return nil, fmt.Errorf("Ping failed: %v", err)
 		}
 	}
 
 	if r.Config.Set != nil {
-		err := r.Config.Client.Set(r.Config.Set.Key, r.Config.Set.Value, r.Config.Set.Expiration).Err()
+		err := r.client.Set(r.Config.Set.Key, r.Config.Set.Value, r.Config.Set.Expiration).Err()
 		if err != nil {
 			return nil, fmt.Errorf("Unable to complete set: %v", err)
 		}
 	}
 
 	if r.Config.Get != nil {
-		val, err := r.Config.Client.Get(r.Config.Get.Key).Result()
+		val, err := r.client.Get(r.Config.Get.Key).Result()
 		if err != nil {
 			if err == redis.Nil {
 				if !r.Config.Get.NoErrorMissingKey {
@@ -121,9 +142,16 @@ func (r *Redis) Status() (interface{}, error) {
 }
 
 func validateRedisConfig(cfg *RedisConfig) error {
-	// Client must be set
-	if cfg.Client == nil {
-		return fmt.Errorf("Client cannot be nil")
+	if cfg == nil {
+		return fmt.Errorf("Main config cannot be nil")
+	}
+
+	if cfg.Auth == nil {
+		return fmt.Errorf("Auth config cannot be nil")
+	}
+
+	if cfg.Auth.Addr == "" {
+		return fmt.Errorf("Addr string must be set in auth config")
 	}
 
 	// At least one check method must be set
