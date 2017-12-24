@@ -211,7 +211,6 @@ func TestStartRunner(t *testing.T) {
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(h).ToNot(BeNil())
-		Expect(h.states).To(BeEmpty())
 
 		// Brittle...
 		time.Sleep(time.Duration(15) * time.Millisecond)

@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/alicebob/miniredis"
-	redis "github.com/go-redis/redis"
 	. "github.com/onsi/gomega"
 )
 
@@ -13,13 +12,14 @@ func TestNewRedis(t *testing.T) {
 	RegisterTestingT(t)
 
 	t.Run("Happy path", func(t *testing.T) {
-		client := redis.NewClient(&redis.Options{
-			Addr: "localhost:6379",
-		})
+		server, err := miniredis.Run()
+		Expect(err).ToNot(HaveOccurred())
 
 		cfg := &RedisConfig{
-			Client: client,
-			Ping:   true,
+			Ping: true,
+			Auth: &RedisAuthConfig{
+				Addr: server.Addr(),
+			},
 		}
 
 		r, err := NewRedis(cfg)
@@ -29,37 +29,61 @@ func TestNewRedis(t *testing.T) {
 	})
 
 	t.Run("Bad config should error", func(t *testing.T) {
-		client := redis.NewClient(&redis.Options{
-			Addr: "localhost:6379",
-		})
-
-		cfg := &RedisConfig{
-			Client: client,
-		}
-
+		var cfg *RedisConfig
 		r, err := NewRedis(cfg)
 
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Unable to validate redis config"))
 		Expect(r).To(BeNil())
+	})
 
+	t.Run("Should error when redis server is not available", func(t *testing.T) {
+		cfg := &RedisConfig{
+			Ping: true,
+			Auth: &RedisAuthConfig{
+				Addr: "foobar:42848",
+			},
+		}
+
+		r, err := NewRedis(cfg)
+
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Unable to establish"))
+		Expect(r).To(BeNil())
 	})
 }
 
 func TestValidateRedisConfig(t *testing.T) {
 	RegisterTestingT(t)
 
-	t.Run("Should error with no client", func(t *testing.T) {
+	t.Run("Should error with nil main config", func(t *testing.T) {
+		var cfg *RedisConfig
+		err := validateRedisConfig(cfg)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Main config cannot be nil"))
+	})
+
+	t.Run("Should error with nil auth config", func(t *testing.T) {
 		err := validateRedisConfig(&RedisConfig{})
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Client cannot be nil"))
+		Expect(err.Error()).To(ContainSubstring("Auth config cannot be nil"))
+	})
+
+	t.Run("Auth config must have an addr set", func(t *testing.T) {
+		cfg := &RedisConfig{
+			Auth: &RedisAuthConfig{},
+		}
+
+		err := validateRedisConfig(cfg)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Addr string must be set"))
 	})
 
 	t.Run("Should error if none of the check methods are enabled", func(t *testing.T) {
 		cfg := &RedisConfig{
-			Client: redis.NewClient(&redis.Options{
+			Auth: &RedisAuthConfig{
 				Addr: "localhost:6379",
-			}),
+			},
 		}
 
 		err := validateRedisConfig(cfg)
@@ -69,9 +93,9 @@ func TestValidateRedisConfig(t *testing.T) {
 
 	t.Run("Should error if .Set is used but key is undefined", func(t *testing.T) {
 		cfg := &RedisConfig{
-			Client: redis.NewClient(&redis.Options{
+			Auth: &RedisAuthConfig{
 				Addr: "localhost:6379",
-			}),
+			},
 			Set: &RedisSetOptions{},
 		}
 
@@ -82,9 +106,9 @@ func TestValidateRedisConfig(t *testing.T) {
 
 	t.Run("Should error if .Get is used but key is undefined", func(t *testing.T) {
 		cfg := &RedisConfig{
-			Client: redis.NewClient(&redis.Options{
+			Auth: &RedisAuthConfig{
 				Addr: "localhost:6379",
-			}),
+			},
 			Get: &RedisGetOptions{},
 		}
 
@@ -95,9 +119,9 @@ func TestValidateRedisConfig(t *testing.T) {
 
 	t.Run("If Set is enabled but value is unset, should use default value", func(t *testing.T) {
 		cfg := &RedisConfig{
-			Client: redis.NewClient(&redis.Options{
+			Auth: &RedisAuthConfig{
 				Addr: "localhost:6379",
-			}),
+			},
 			Set: &RedisSetOptions{
 				Key: "foo",
 			},
@@ -299,15 +323,9 @@ func setupRedis(cfg *RedisConfig) (*Redis, *miniredis.Miniredis, error) {
 		return nil, nil, fmt.Errorf("Unable to setup miniredis: %v", err)
 	}
 
-	client := redis.NewClient(&redis.Options{
+	cfg.Auth = &RedisAuthConfig{
 		Addr: server.Addr(),
-	})
-
-	if _, err := client.Ping().Result(); err != nil {
-		return nil, nil, fmt.Errorf("Unable to complete ping during setup: %v", err)
 	}
-
-	cfg.Client = client
 
 	checker, err := NewRedis(cfg)
 	if err != nil {
