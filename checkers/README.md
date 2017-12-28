@@ -13,25 +13,15 @@ list of built-in checkers.
 ## Built-in checkers
 
 * [HTTP](#http)
-* [DB Ping](#db-ping)
-* [DB SQL](#db-sql)
-* [Mongo](#mongo)
 * [Redis](#redis)
+* [SQL DB](#sql-db)
+* [Mongo](#mongo)
 
 ### HTTP
 The HTTP checker is a generic HTTP call executor. To make use of it, instantiate and fill out a `HTTPConfig` struct and pass it into `checkers.NewHTTP(...)`.
 
 The only **required** attribute is `HTTPConfig.URL` (`*url.URL`). 
 Refer to the source code for all available attributes on the struct.
-
-### DB Ping
-WIP
-
-### DB SQL
-WIP
-
-### Mongo
-WIP
 
 ### Redis
 The Redis checker allows allows you to test that your server is either available (by ping), is able to set a value, is able to get a value or all of the above.
@@ -41,3 +31,9 @@ To make use of it, instantiate and fill out a `RedisConfig` struct and pass it t
 The `RedisConfig` must contain a valid `RedisAuthConfig` and at least _one_ check method (ping, set or get).
 
 Refer to the godocs for additional info.
+
+### SQL DB
+Planned, but PR's welcome!
+
+### Mongo
+Planned, but PR's welcome!
