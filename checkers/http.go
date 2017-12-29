@@ -19,13 +19,18 @@ const (
 
 // HTTPConfig is used for configuring an HTTP check. The only required field is `URL`.
 //
-// - `Method` is optional and defaults to `GET` if undefined
-// - `Payload` is optional and can accept `string`, `[]byte` or will attempt to
-// marshal the input to JSON for use w/ `bytes.NewReader()`
-// - `StatusCode` is optional and defaults to `200`
-// - `Expect` is optional; if defined, operates as a basic "body should contain <string>"
-// - `Client` is optional; if undefined, a new client will be created using `Timeout`
-// - `Timeout` is optional and defaults to `3s`
+// "Method" is optional and defaults to `GET` if undefined.
+//
+// "Payload" is optional and can accept `string`, `[]byte` or will attempt to
+// marshal the input to JSON for use w/ `bytes.NewReader()`.
+//
+// "StatusCode" is optional and defaults to `200`.
+//
+// "Expect" is optional; if defined, operates as a basic "body should contain <string>".
+//
+// "Client" is optional; if undefined, a new client will be created using "Timeout".
+//
+// "Timeout" is optional and defaults to "3s".
 type HTTPConfig struct {
 	URL        *url.URL      // Required
 	Method     string        // Optional (default GET)
@@ -36,12 +41,12 @@ type HTTPConfig struct {
 	Timeout    time.Duration // Optional (default 3s)
 }
 
-// HTTP implements the ICheckable interface
+// HTTP implements the "ICheckable" interface.
 type HTTP struct {
 	Config *HTTPConfig
 }
 
-// NewHTTP creates a new HTTP checker that can be used for `.AddCheck(s)`.
+// NewHTTP creates a new HTTP checker that can be used for ".AddCheck(s)".
 func NewHTTP(cfg *HTTPConfig) (*HTTP, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Passed in config cannot be nil")
@@ -57,7 +62,7 @@ func NewHTTP(cfg *HTTPConfig) (*HTTP, error) {
 }
 
 // Status is used for performing an HTTP check against a dependency; it satisfies
-// the `ICheckable` interface.
+// the "ICheckable" interface.
 func (h *HTTP) Status() (interface{}, error) {
 	resp, err := h.do()
 	if err != nil {
