@@ -1,50 +1,6 @@
 // Package health is a library that enables *async* dependency health checking for services running on an orchastrated container platform such as kubernetes or mesos.
 // 
-// ## Example
-// 
-// For _full_ examples, look through the [examples dir](examples/)
-// 
-// 1. Create an instance of `health` and configure a checker (or two)
-// 
-// ```golang
-// import (
-// 	health "github.com/InVisionApp/go-health"
-// 	"github.com/InVisionApp/go-health/checkers"
-// 	"github.com/InVisionApp/go-health/handlers"
-// )
-// 
-// // Create a new health instance
-// h := health.New()
-// 
-// // Create a checker
-// myURL, _ := url.Parse("https://google.com")
-// myCheck, _ := checkers.NewHTTP(&checkers.HTTPConfig{
-//     URL: myURL,
-// })
-// ```
-// 
-// 2. Register your check with your `health` instance
-// 
-// ```golang
-// h.AddChecks([]*health.Config{
-//     {
-//         Name:     "my-check",
-//         Checker:  myCheck,
-//         Interval: time.Duration(2) * time.Second,
-//         Fatal:    true,
-//     },
-// )
-// ```
-// 
-// 3. Start the healthcheck
-// 
-// ```golang
-// h.Start()
-// ```
-// 
-// From here on, you can either configure an endpoint such as `/healthcheck` to use a built-in handler such as `handlers.NewJSONHandlerFunc()` or get the current health state of all your deps by traversing the data returned by `h.State()`.
-// 
-// _For additional information, refer to the project's README.md._
+// Refer to the project's `README.md` for examples and additional documentation.
 package health
 
 import (
