@@ -47,7 +47,7 @@ type RedisAuthConfig struct {
 //
 // "Value" is optional; what the value should hold; if not set, it will be set
 // to "RedisDefaultSetValue".
-
+//
 // "Expiration" is optional; if set, a TTL will be attached to the key.
 type RedisSetOptions struct {
 	Key        string
