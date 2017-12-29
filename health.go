@@ -1,6 +1,8 @@
 // Package health is a library that enables *async* dependency health checking for services running on an orchastrated container platform such as kubernetes or mesos.
-// 
-// Refer to the project's `README.md` for examples and additional documentation.
+//
+// For additional overview, documentation and contribution guidelines, refer to the project's "README.md".
+//
+// For example usage, refer to https://github.com/InVisionApp/go-health/tree/master/examples/simple-http-server.
 package health
 
 import (
@@ -18,18 +20,18 @@ var (
 	// ErrNoAddCfgWhenActive is returned when you attempt to add check(s) to an already active healthcheck instance
 	ErrNoAddCfgWhenActive = errors.New("Unable to add new check configuration(s) while healthcheck is active")
 
-	// ErrAlreadyRunning is returned when you attempt to `h.Start()` an already running healthcheck
+	// ErrAlreadyRunning is returned when you attempt to "h.Start()" an already running healthcheck
 	ErrAlreadyRunning = errors.New("Healthcheck is already running - nothing to start")
 
-	// ErrAlreadyStopped is returned when you attempt to `h.Stop()` a non-running healthcheck instance
+	// ErrAlreadyStopped is returned when you attempt to "h.Stop()" a non-running healthcheck instance
 	ErrAlreadyStopped = errors.New("Healthcheck is not running - nothing to stop")
 
-	// ErrEmptyConfigs is returned when you attempt to add an empty slice of configs via `h.AddChecks()`
+	// ErrEmptyConfigs is returned when you attempt to add an empty slice of configs via "h.AddChecks()"
 	ErrEmptyConfigs = errors.New("Configs appears to be empty - nothing to add")
 )
 
 // The IHealth interface can be useful if you plan on replacing the actual health
-// checker with a mock during testing. Otherwise, you can set `hc.Disable = true`
+// checker with a mock during testing. Otherwise, you can set "hc.Disable = true"
 // after instantiation.
 type IHealth interface {
 	AddChecks(cfgs []*Config) error
@@ -41,12 +43,12 @@ type IHealth interface {
 }
 
 // The ICheckable interface is implemented by a number of bundled checkers such
-// as `MySQLChecker`, `RedisChecker` and `HTTPChecker`. By implementing the
+// as "MySQLChecker", "RedisChecker" and "HTTPChecker". By implementing the
 // interface, you can feed your own custom checkers into the health library.
 type ICheckable interface {
-	// Status allows you to return additional data as an `interface{}` and `error`
-	// to signify that the check has failed. If `interface{}` is non-nil, it will
-	// be exposed under `State.Details` for that particular check.
+	// Status allows you to return additional data as an "interface{}" and "error"
+	// to signify that the check has failed. If "interface{}" is non-nil, it will
+	// be exposed under "State.Details" for that particular check.
 	Status() (interface{}, error)
 }
 
@@ -60,15 +62,14 @@ type Config struct {
 
 // The State struct contains the results of the latest run of a particular check.
 type State struct {
-	Name   string `json:"name"`
-	Status string `json:"status"`
-	Err    string `json:"error,omitempty"`
-	// contains JSON message (that can be marshaled)
-	Details   interface{} `json:"details,omitempty"`
+	Name      string      `json:"name"`
+	Status    string      `json:"status"`
+	Err       string      `json:"error,omitempty"`
+	Details   interface{} `json:"details,omitempty"` // contains JSON message (that can be marshaled)
 	CheckTime time.Time   `json:"check_time"`
 }
 
-// Health contains internal go-health internal structures
+// Health contains internal go-health internal structures.
 type Health struct {
 	Logger loggers.ILogger
 
@@ -94,13 +95,13 @@ func New() *Health {
 	}
 }
 
-// DisableLogging will disable all logging by inserting the noop logger
+// DisableLogging will disable all logging by inserting the noop logger.
 func (h *Health) DisableLogging() {
 	h.Logger = loggers.NewNoop()
 }
 
 // AddChecks is used for adding multiple check definitions at once (as opposed
-// to adding them sequentially via `AddCheck()`).
+// to adding them sequentially via "AddCheck()").
 func (h *Health) AddChecks(cfgs []*Config) error {
 	if h.active.val() {
 		return ErrNoAddCfgWhenActive
@@ -126,7 +127,7 @@ func (h *Health) AddCheck(cfg *Config) error {
 }
 
 // Start will start all of the defined health checks. Each of the checks run in
-// their own goroutines (as `time.Ticker`).
+// their own goroutines (as "time.Ticker").
 func (h *Health) Start() error {
 	if h.active.val() {
 		return ErrAlreadyRunning
@@ -172,7 +173,7 @@ func (h *Health) Stop() error {
 //
 // The returned structs can be used for figuring out additional analytics or
 // used for building your own status handler (as opposed to using the built-in
-// `hc.HandlerBasic` or `hc.HandlerJSON`).
+// "hc.HandlerBasic" or "hc.HandlerJSON").
 //
 // The map key is the name of the check.
 func (h *Health) State() (map[string]State, bool, error) {

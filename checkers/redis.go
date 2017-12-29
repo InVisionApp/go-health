@@ -8,25 +8,24 @@ import (
 )
 
 const (
-	// RedisDefaultSetValue will be used if the `Set` check method is enabled
-	// and `RedisSetOptions.Value` is _not_ set.
+	// RedisDefaultSetValue will be used if the "Set" check method is enabled
+	// and "RedisSetOptions.Value" is _not_ set.
 	RedisDefaultSetValue = "go-health/redis-check"
 )
 
 // RedisConfig is used for configuring the go-redis check.
 //
-// `Auth` is _required_
-//   - redis connection/auth config
-// `Ping ` is optional
-//   - the most basic check method, performs a `.Ping()` on the client
-// `Get` is optional
-//   - Perform a `GET` on a key; refer to the `RedisGetOptions` docs for details
-// `Set` is optional
-//   - Perform a `SET` on a key; refer to the `RedisSetOptions` docs for details
+// "Auth" is _required_; redis connection/auth config.
+//
+// "Ping" is optional; the most basic check method, performs a `.Ping()` on the client.
+//
+// "Get" is optional; perform a "GET" on a key; refer to the "RedisGetOptions" docs for details.
+//
+// "Set" is optional; perform a "SET" on a key; refer to the "RedisSetOptions" docs for details.
 //
 // Note: At least _one_ check method must be set/enabled; you can also enable
-//      _all_ of the check methods (ie. perform a ping, set this key and now try
-//      to retrieve that key).
+// _all_ of the check methods (ie. perform a ping, set this key and now try to
+// retrieve that key).
 type RedisConfig struct {
 	Auth *RedisAuthConfig
 	Ping bool
@@ -34,7 +33,7 @@ type RedisConfig struct {
 	Get  *RedisGetOptions
 }
 
-// RedisAuthConfig defines how to connect to redis
+// RedisAuthConfig defines how to connect to redis.
 type RedisAuthConfig struct {
 	Addr     string // `host:port` format
 	Password string // leave blank if no password
@@ -42,14 +41,14 @@ type RedisAuthConfig struct {
 }
 
 // RedisSetOptions contains attributes that can alter the behavior of the redis
-// `SET` check.
+// "SET" check.
 //
-// `Key` is _required_
-//  - the name of the key we are attempting to `SET`
-// `Value` is optional
-//  - what the value should hold; if not set, it will be set to `RedisDefaultSetValue`
-// `Expiration` is optional
-//  - if set, a TTL will be attached to the key
+// "Key" is _required_; the name of the key we are attempting to "SET".
+//
+// "Value" is optional; what the value should hold; if not set, it will be set
+// to "RedisDefaultSetValue".
+
+// "Expiration" is optional; if set, a TTL will be attached to the key.
 type RedisSetOptions struct {
 	Key        string
 	Value      string
@@ -57,15 +56,15 @@ type RedisSetOptions struct {
 }
 
 // RedisGetOptions contains attributes that can alter the behavior of the redis
-// `GET` check.
+// "GET" check.
 //
-// `Key` is _required_
-//   - the name of the key that we are attempting to `GET`
-// `Expect` is optional
-//  - optionally verify that the value for the key matches the Expect value
-// `NoErrorMissingKey`
-//  - by default, the `GET` check will error if the key we are fetching does not
-//    exist; flip this bool if that is normal/expected/ok.
+// "Key" is _required_; the name of the key that we are attempting to "GET".
+//
+// "Expect" is optional; optionally verify that the value for the key matches
+// the Expect value.
+//
+// "NoErrorMissingKey" is optional; by default, the "GET" check will error if
+// the key we are fetching does not exist; flip this bool if that is normal/expected/ok.
 type RedisGetOptions struct {
 	Key               string
 	Expect            string
@@ -78,7 +77,7 @@ type Redis struct {
 	client *redis.Client
 }
 
-// NewRedis creates a new `go-redis/redis` checker that can be used w/ `AddChecks()`.
+// NewRedis creates a new "go-redis/redis" checker that can be used w/ "AddChecks()".
 func NewRedis(cfg *RedisConfig) (*Redis, error) {
 	// validate settings
 	if err := validateRedisConfig(cfg); err != nil {
@@ -103,7 +102,7 @@ func NewRedis(cfg *RedisConfig) (*Redis, error) {
 }
 
 // Status is used for performing a redis check against a dependency; it satisfies
-// the `ICheckable` interface.
+// the "ICheckable" interface.
 func (r *Redis) Status() (interface{}, error) {
 	if r.Config.Ping {
 		if _, err := r.client.Ping().Result(); err != nil {

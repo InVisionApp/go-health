@@ -2,12 +2,14 @@ package health
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
 
 	"github.com/InVisionApp/go-health/fakes"
+	"github.com/InVisionApp/go-health/loggers"
 )
 
 var (
@@ -90,6 +92,155 @@ func TestAddCheck(t *testing.T) {
 		Expect(err).To(HaveOccurred())
 		Expect(err).To(Equal(ErrNoAddCfgWhenActive))
 	})
+}
+
+func TestDisableLogging(t *testing.T) {
+	RegisterTestingT(t)
+
+	t.Run("Should set logger to noop logger", func(t *testing.T) {
+		h := New()
+		// Should initially be set to a basic logger
+		Expect(h.Logger).To(BeEquivalentTo(loggers.NewBasic()))
+
+		// Should set it to a noop logger
+		h.DisableLogging()
+		Expect(h.Logger).To(BeEquivalentTo(loggers.NewNoop()))
+	})
+}
+
+func TestFailed(t *testing.T) {
+	RegisterTestingT(t)
+
+	t.Run("Should return false if a fatally configured check hasn't errored", func(t *testing.T) {
+		t.Run("Happy path", func(t *testing.T) {
+			h := New()
+			checker1 := &fakes.FakeICheckable{}
+			checker1.StatusReturns(nil, nil)
+
+			cfgs := []*Config{
+				&Config{
+					Name:     "foo",
+					Checker:  checker1,
+					Interval: testCheckInterval,
+					Fatal:    true,
+				},
+			}
+
+			err := h.AddChecks(cfgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = h.Start()
+			Expect(err).ToNot(HaveOccurred())
+
+			// More brittleness -- need to wait to ensure our checks have executed
+			time.Sleep(time.Duration(15) * time.Millisecond)
+
+			states, failed, err := h.State()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(failed).To(BeFalse())
+			Expect(states).To(HaveKey("foo"))
+
+			Expect(h.Failed()).To(BeFalse())
+		})
+
+	})
+
+	t.Run("Should return true if a fatally configured check has failed", func(t *testing.T) {
+		h := New()
+		checker1 := &fakes.FakeICheckable{}
+		checker1.StatusReturns(nil, fmt.Errorf("things broke"))
+
+		cfgs := []*Config{
+			&Config{
+				Name:     "foo",
+				Checker:  checker1,
+				Interval: testCheckInterval,
+				Fatal:    true,
+			},
+		}
+
+		err := h.AddChecks(cfgs)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = h.Start()
+		Expect(err).ToNot(HaveOccurred())
+
+		// More brittleness -- need to wait to ensure our checks have executed
+		time.Sleep(time.Duration(15) * time.Millisecond)
+
+		states, failed, err := h.State()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(failed).To(BeTrue())
+		Expect(states).To(HaveKey("foo"))
+
+		Expect(h.Failed()).To(BeTrue())
+
+	})
+}
+
+func TestState(t *testing.T) {
+	RegisterTestingT(t)
+
+	t.Run("Happy path", func(t *testing.T) {
+		h := New()
+		checker1 := &fakes.FakeICheckable{}
+		checker1.StatusReturns(nil, fmt.Errorf("things broke"))
+
+		cfgs := []*Config{
+			&Config{
+				Name:     "foo",
+				Checker:  checker1,
+				Interval: testCheckInterval,
+				Fatal:    false,
+			},
+		}
+
+		err := h.AddChecks(cfgs)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = h.Start()
+		Expect(err).ToNot(HaveOccurred())
+
+		// More brittleness -- need to wait to ensure our checks have executed
+		time.Sleep(time.Duration(15) * time.Millisecond)
+
+		states, failed, err := h.State()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(failed).To(BeFalse())
+		Expect(states).To(HaveKey("foo"))
+		Expect(states["foo"].Err).To(Equal("things broke"))
+	})
+
+	t.Run("When a fatally-configured check fails, states should return 'true' for failed bool", func(t *testing.T) {
+		h := New()
+		checker1 := &fakes.FakeICheckable{}
+		checker1.StatusReturns(nil, fmt.Errorf("things broke"))
+
+		cfgs := []*Config{
+			&Config{
+				Name:     "foo",
+				Checker:  checker1,
+				Interval: testCheckInterval,
+				Fatal:    true,
+			},
+		}
+
+		err := h.AddChecks(cfgs)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = h.Start()
+		Expect(err).ToNot(HaveOccurred())
+
+		// More brittleness -- need to wait to ensure our checks have executed
+		time.Sleep(time.Duration(15) * time.Millisecond)
+
+		states, failed, err := h.State()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(failed).To(BeTrue())
+		Expect(states).To(HaveKey("foo"))
+		Expect(states["foo"].Err).To(Equal("things broke"))
+	})
+
 }
 
 func TestStart(t *testing.T) {
