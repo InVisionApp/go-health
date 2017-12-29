@@ -1,4 +1,4 @@
-// Package health is a library that enables *async* dependency health checking for services running on an orchastrated container platform such as kubernetes or mesos.
+// Package health is a library that enables *async* dependency health checking for services running on an orchestrated container platform such as kubernetes or mesos.
 //
 // For additional overview, documentation and contribution guidelines, refer to the project's "README.md".
 //
