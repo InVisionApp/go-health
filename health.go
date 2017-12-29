@@ -1,3 +1,5 @@
+// A library that enables async dependency health checking for services running on an orchastrated container 
+// platform such as kubernetes or mesos.
 package health
 
 import (
