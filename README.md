@@ -1,5 +1,5 @@
 [![LICENSE](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
-[![Build Status](https://travis-ci.com/InVisionApp/go-health.svg?token=KosA43m1X3ikri8JEukQ&branch=master)](https://travis-ci.com/InVisionApp/go-health)
+[![Build Status](https://travis-ci.org/InVisionApp/go-health.svg?branch=master)](https://travis-ci.org/InVisionApp/go-health)
 [![codecov](https://codecov.io/gh/InVisionApp/go-health/branch/master/graph/badge.svg?token=hhqA1l88kx)](https://codecov.io/gh/InVisionApp/go-health)
 [![Go Report Card](https://goreportcard.com/badge/github.com/InVisionApp/go-health)](https://goreportcard.com/report/github.com/InVisionApp/go-health)
 [![Godocs](https://img.shields.io/badge/golang-documentation-blue.svg)](https://godoc.org/github.com/InVisionApp/go-health)
