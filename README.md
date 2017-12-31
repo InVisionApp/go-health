@@ -35,13 +35,23 @@ This library:
 
 * Allows you to define how to check your dependencies.
 * Allows you to define warning and fatal thresholds.
-* Will run your dependency checks on a given interval, in the background.
-* Exposes a way for you to gather the check results in a *fast* and *thread-safe* manner to help determine the final status of your `/status` endpoint.
-* Comes bundled w/ a number of checkers for well-known dependencies such as `MySQL`, `PostgreSQL`, `Redis`, `HTTP`, `Mongo`.
+* Will run your dependency checks on a given interval, in the background. **[1]**
+* Exposes a way for you to gather the check results in a *fast* and *thread-safe* manner to help determine the final status of your `/status` endpoint. **[2]**
+* Comes bundled w/ [pre-built checkers](/checkers) for well-known dependencies such as `Redis`, `HTTP`.
 * Makes it simple to implement and provide your own checkers (by adhering to the checker interface).
 * Is test-friendly
     + Provides an easy way to disable dependency health checking.
     + Uses an interface for its dependencies, allowing you to insert fakes/mocks at test time.
+
+**[1]** Make sure to run your checks on a "sane" interval - ie. if you are checking your
+Redis dependency once every five minutes, your service is essentially running _blind_
+for about 4.59/5 minutes. Unless you have a really good reason, check your dependencies
+every X _seconds_, rather than X _minutes_.
+
+**[2]** `go-health` continuously writes dependency health state data and allows
+you to query that data via `.State()`. Alternatively, you can use one of the
+pre-built HTTP handlers for your `/healthcheck` endpoint (and thus not have to
+manually inspect the state data).
 
 ## Example
 
@@ -86,6 +96,29 @@ h.Start()
 ```
 
 From here on, you can either configure an endpoint such as `/healthcheck` to use a built-in handler such as `handlers.NewJSONHandlerFunc()` or get the current health state of all your deps by traversing the data returned by `h.State()`.
+
+## Sample /healthcheck output
+Assuming you have configured `go-health` with two `HTTP` checkers, your `/healthcheck`
+output would look something like this:
+
+```json
+{
+    "details": {
+        "bad-check": {
+            "name": "bad-check",
+            "status": "failed",
+            "error": "Ran into error while performing 'GET' request: Get google.com: unsupported protocol scheme \"\"",
+            "check_time": "2017-12-30T16:20:13.732240871-08:00"
+        },
+        "good-check": {
+            "name": "good-check",
+            "status": "ok",
+            "check_time": "2017-12-30T16:20:13.80109931-08:00"
+        }
+    },
+    "status": "ok"
+}
+```
 
 ## Additional Documentation
 * [Examples](/examples)
