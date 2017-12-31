@@ -1,44 +1,31 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/InVisionApp/go-health"
-	"github.com/InVisionApp/go-health/checkers"
 	"github.com/InVisionApp/go-health/handlers"
 )
+
+type CustomCheck struct{}
 
 func main() {
 	// Create a new health instance
 	h := health.New()
-	goodTestURL, _ := url.Parse("https://google.com")
-	badTestURL, _ := url.Parse("google.com")
 
-	// Create a couple of checks
-	goodHTTPCheck, _ := checkers.NewHTTP(&checkers.HTTPConfig{
-		URL: goodTestURL,
-	})
-
-	badHTTPCheck, _ := checkers.NewHTTP(&checkers.HTTPConfig{
-		URL: badTestURL,
-	})
+	// Instantiate your custom check
+	customCheck := &CustomCheck{}
 
 	// Add the checks to the health instance
 	h.AddChecks([]*health.Config{
 		{
 			Name:     "good-check",
-			Checker:  goodHTTPCheck,
+			Checker:  customCheck,
 			Interval: time.Duration(2) * time.Second,
 			Fatal:    true,
-		},
-		{
-			Name:     "bad-check",
-			Checker:  badHTTPCheck,
-			Interval: time.Duration(2) * time.Second,
-			Fatal:    false,
 		},
 	})
 
@@ -52,4 +39,16 @@ func main() {
 	// Define a healthcheck endpoint and use the built-in JSON handler
 	http.HandleFunc("/healthcheck", handlers.NewJSONHandlerFunc(h, nil))
 	http.ListenAndServe(":8080", nil)
+}
+
+// Satisfy the go-health.ICheckable interface
+func (c *CustomCheck) Status() (interface{}, error) {
+	// perform some sort of check
+	if false {
+		return nil, fmt.Errorf("Something major just broke")
+	}
+
+	// You can return additional information pertaining to the check as long
+	// as it can be JSON marshalled
+	return map[string]int{"foo": 123, "bar": 456}, nil
 }
