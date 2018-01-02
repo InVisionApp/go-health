@@ -118,7 +118,7 @@ func TestFailed(t *testing.T) {
 			checker1.StatusReturns(nil, nil)
 
 			cfgs := []*Config{
-				&Config{
+				{
 					Name:     "foo",
 					Checker:  checker1,
 					Interval: testCheckInterval,
@@ -151,7 +151,7 @@ func TestFailed(t *testing.T) {
 		checker1.StatusReturns(nil, fmt.Errorf("things broke"))
 
 		cfgs := []*Config{
-			&Config{
+			{
 				Name:     "foo",
 				Checker:  checker1,
 				Interval: testCheckInterval,
@@ -187,7 +187,7 @@ func TestState(t *testing.T) {
 		checker1.StatusReturns(nil, fmt.Errorf("things broke"))
 
 		cfgs := []*Config{
-			&Config{
+			{
 				Name:     "foo",
 				Checker:  checker1,
 				Interval: testCheckInterval,
@@ -217,7 +217,7 @@ func TestState(t *testing.T) {
 		checker1.StatusReturns(nil, fmt.Errorf("things broke"))
 
 		cfgs := []*Config{
-			&Config{
+			{
 				Name:     "foo",
 				Checker:  checker1,
 				Interval: testCheckInterval,
@@ -252,13 +252,13 @@ func TestStart(t *testing.T) {
 		checker2 := &fakes.FakeICheckable{}
 
 		cfgs := []*Config{
-			&Config{
+			{
 				Name:     "foo",
 				Checker:  checker1,
 				Interval: testCheckInterval,
 				Fatal:    false,
 			},
-			&Config{
+			{
 				Name:     "bar",
 				Checker:  checker2,
 				Interval: testCheckInterval,
@@ -383,13 +383,13 @@ func TestStartRunner(t *testing.T) {
 		checker2.StatusReturns(nil, checker2Error)
 
 		cfgs := []*Config{
-			&Config{
+			{
 				Name:     "foo",
 				Checker:  checker1,
 				Interval: testCheckInterval,
 				Fatal:    false,
 			},
-			&Config{
+			{
 				Name:     "bar",
 				Checker:  checker2,
 				Interval: testCheckInterval,
@@ -427,13 +427,13 @@ func TestStartRunner(t *testing.T) {
 		checker2.StatusReturns(nil, checker2Err)
 
 		cfgs := []*Config{
-			&Config{
+			{
 				Name:     "foo",
 				Checker:  checker1,
 				Interval: testCheckInterval,
 				Fatal:    false,
 			},
-			&Config{
+			{
 				Name:     "bar",
 				Checker:  checker2,
 				Interval: testCheckInterval,
