@@ -10,20 +10,20 @@ import (
 	"github.com/InVisionApp/go-health/handlers"
 )
 
-type CustomCheck struct{}
+type customCheck struct{}
 
 func main() {
 	// Create a new health instance
 	h := health.New()
 
 	// Instantiate your custom check
-	customCheck := &CustomCheck{}
+	cc := &customCheck{}
 
 	// Add the checks to the health instance
 	h.AddChecks([]*health.Config{
 		{
 			Name:     "good-check",
-			Checker:  customCheck,
+			Checker:  cc,
 			Interval: time.Duration(2) * time.Second,
 			Fatal:    true,
 		},
@@ -42,7 +42,7 @@ func main() {
 }
 
 // Satisfy the go-health.ICheckable interface
-func (c *CustomCheck) Status() (interface{}, error) {
+func (c *customCheck) Status() (interface{}, error) {
 	// perform some sort of check
 	if false {
 		return nil, fmt.Errorf("Something major just broke")
