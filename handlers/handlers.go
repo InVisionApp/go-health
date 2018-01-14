@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/InVisionApp/go-health"
+	"github.com/schigh/go-health"
 )
 
 type jsonStatus struct {
