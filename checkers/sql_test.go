@@ -14,6 +14,9 @@ type testInvalidKind2 struct{}
 type testInvalidKind3 struct{}
 type testInvalidKind4 struct{}
 type testInvalidKind5 struct{}
+type testInvalidKind6 struct{}
+type testInvalidKind7 struct{}
+type testInvalidKind8 struct{}
 type testHealthyIPingable struct{}
 type testUnhealthyIPingable struct{}
 type testHealthyPinger struct{}
@@ -28,6 +31,15 @@ func (iv *testInvalidKind4) Ping(ctx context.Context) (int, error) {
 	return 0, nil
 }
 func (iv *testInvalidKind5) Pong() {}
+func (iv *testInvalidKind6) Ping(s string) error {
+	return nil
+}
+func (iv *testInvalidKind7) Ping(x string, y string) error {
+	return nil
+}
+func (iv *testInvalidKind8) Ping(ctx context.Context) bool {
+	return true
+}
 func (p *testHealthyIPingable) Ping() error {
 	return nil
 }
@@ -116,6 +128,33 @@ func TestNewSQL(t *testing.T) {
 		iv5 := &testInvalidKind5{}
 		s, err = NewSQL(&SQLConfig{
 			DB: iv5,
+		})
+		Expect(err).ToNot(BeNil())
+		Expect(s).To(BeNil())
+		Expect(err).To(Equal(badSQLImplementationError))
+
+		// testInvalidKind6 has a bad function signature
+		iv6 := &testInvalidKind6{}
+		s, err = NewSQL(&SQLConfig{
+			DB: iv6,
+		})
+		Expect(err).ToNot(BeNil())
+		Expect(s).To(BeNil())
+		Expect(err).To(Equal(badSQLImplementationError))
+
+		// testInvalidKind7 has a bad function signature
+		iv7 := &testInvalidKind7{}
+		s, err = NewSQL(&SQLConfig{
+			DB: iv7,
+		})
+		Expect(err).ToNot(BeNil())
+		Expect(s).To(BeNil())
+		Expect(err).To(Equal(badSQLImplementationError))
+
+		// testInvalidKind7 returns the wrong type
+		iv8 := &testInvalidKind8{}
+		s, err = NewSQL(&SQLConfig{
+			DB: iv8,
 		})
 		Expect(err).ToNot(BeNil())
 		Expect(s).To(BeNil())
