@@ -24,7 +24,7 @@ The only **required** attribute is `HTTPConfig.URL` (`*url.URL`).
 Refer to the source code for all available attributes on the struct.
 
 ### Redis
-The Redis checker allows allows you to test that your server is either available (by ping), is able to set a value, is able to get a value or all of the above.
+The Redis checker allows you to test that your server is either available (by ping), is able to set a value, is able to get a value or all of the above.
 
 To make use of it, instantiate and fill out a `RedisConfig` struct and pass it to `checkers.NewRedis(...)`.
 
@@ -33,7 +33,13 @@ The `RedisConfig` must contain a valid `RedisAuthConfig` and at least _one_ chec
 Refer to the godocs for additional info.
 
 ### SQL DB
-Planned, but PR's welcome!
+The SQL DB checker allows you to use the `Ping` functionality provided in `sql.DB`.  You can also implement the 
+`Pinger` interface in `sql/drivers`.  This health check will work with any database abstraction that either 
+embeds a native sql Conn or provides it in a field.
+
+To use it, create a `SQLConfig` struct and pass it into `checkers.NewSQL(...)`
+
+The `DB` field (the only exported field) in `SQLConfig` is **required**.
 
 ### Mongo
 Planned, but PR's welcome!
