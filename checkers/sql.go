@@ -37,6 +37,17 @@ type SQL struct {
 	Config *SQLConfig
 }
 
+var (
+	badSQLImplementationError error
+)
+
+func init() {
+	// this error is returned upon interface validation failure
+	badSQLImplementationError = fmt.Errorf("DB must implement either the " +
+		"Pinger interface in the stdlib sql/driver package or the IPingable " +
+		"interface in the github.com/InVisionApp/go-health/checkers package")
+}
+
 // NewSQL creates a new database checker that can be used for ".AddCheck(s)".
 func NewSQL(cfg *SQLConfig) (*SQL, error) {
 	if cfg == nil {
@@ -46,15 +57,10 @@ func NewSQL(cfg *SQLConfig) (*SQL, error) {
 		return nil, fmt.Errorf("DB interface cannot be nil")
 	}
 
-	// this error is returned upon interface validation failure
-	badImplementationErr := fmt.Errorf("DB must implement either the " +
-		"Pinger interface in the stdlib sql/driver package or the IPingable " +
-		"interface in the github.com/InVisionApp/go-health/checkers package")
-
 	dbType := reflect.TypeOf(cfg.DB)
 	method, ok := dbType.MethodByName("Ping")
 	if !ok {
-		return nil, badImplementationErr
+		return nil, badSQLImplementationError
 	}
 
 	// get number of args passed into ping function. Number is always "self" + 1
@@ -68,19 +74,19 @@ func NewSQL(cfg *SQLConfig) (*SQL, error) {
 		cfg.implementsPinger = true
 		c := method.Type.In(1)
 		if !(c.PkgPath() == "context" && c.Name() == "Context") {
-			return nil, badImplementationErr
+			return nil, badSQLImplementationError
 		}
 	default:
-		return nil, badImplementationErr
+		return nil, badSQLImplementationError
 	}
 
 	// make sure the method returns an error
 	if method.Type.NumOut() != 1 {
-		return nil, badImplementationErr
+		return nil, badSQLImplementationError
 	}
 	c := method.Type.Out(0)
 	if !(c.PkgPath() == "" && c.Name() == "error") {
-		return nil, badImplementationErr
+		return nil, badSQLImplementationError
 	}
 
 	return &SQL{

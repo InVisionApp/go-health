@@ -13,6 +13,7 @@ type testInvalidKind1 struct{}
 type testInvalidKind2 struct{}
 type testInvalidKind3 struct{}
 type testInvalidKind4 struct{}
+type testInvalidKind5 struct{}
 type testHealthyIPingable struct{}
 type testUnhealthyIPingable struct{}
 type testHealthyPinger struct{}
@@ -26,6 +27,7 @@ func (iv *testInvalidKind3) Ping() (int, error) {
 func (iv *testInvalidKind4) Ping(ctx context.Context) (int, error) {
 	return 0, nil
 }
+func (iv *testInvalidKind5) Pong() {}
 func (p *testHealthyIPingable) Ping() error {
 	return nil
 }
@@ -68,38 +70,56 @@ func TestNewSQL(t *testing.T) {
 
 	t.Run("sad path using invalid interfaces", func(t *testing.T) {
 		var err error
+		var s *SQL
 
 		// testInvalidKind1 does not implement IPingable
 		// because it does not return an error
 		iv1 := &testInvalidKind1{}
-		_, err = NewSQL(&SQLConfig{
+		s, err = NewSQL(&SQLConfig{
 			DB: iv1,
 		})
 		Expect(err).ToNot(BeNil())
+		Expect(s).To(BeNil())
+		Expect(err).To(Equal(badSQLImplementationError))
 
 		// testInvalidKind2 does not implement Pinger
 		// because it does not return an error
 		iv2 := &testInvalidKind2{}
-		_, err = NewSQL(&SQLConfig{
+		s, err = NewSQL(&SQLConfig{
 			DB: iv2,
 		})
 		Expect(err).ToNot(BeNil())
+		Expect(s).To(BeNil())
+		Expect(err).To(Equal(badSQLImplementationError))
 
 		// testInvalidKind3 does not implement IPingable
 		// because it returns multiple values
-		iv3 := &testInvalidKind1{}
-		_, err = NewSQL(&SQLConfig{
+		iv3 := &testInvalidKind3{}
+		s, err = NewSQL(&SQLConfig{
 			DB: iv3,
 		})
 		Expect(err).ToNot(BeNil())
+		Expect(s).To(BeNil())
+		Expect(err).To(Equal(badSQLImplementationError))
 
 		// testInvalidKind4 does not implement Pinger
 		// because it returns multiple values
-		iv4 := &testInvalidKind1{}
-		_, err = NewSQL(&SQLConfig{
+		iv4 := &testInvalidKind4{}
+		s, err = NewSQL(&SQLConfig{
 			DB: iv4,
 		})
 		Expect(err).ToNot(BeNil())
+		Expect(s).To(BeNil())
+		Expect(err).To(Equal(badSQLImplementationError))
+
+		// testInvalidKind5 does not implement anything
+		iv5 := &testInvalidKind5{}
+		s, err = NewSQL(&SQLConfig{
+			DB: iv5,
+		})
+		Expect(err).ToNot(BeNil())
+		Expect(s).To(BeNil())
+		Expect(err).To(Equal(badSQLImplementationError))
 	})
 }
 
