@@ -24,7 +24,7 @@ func TestNew(t *testing.T) {
 
 		Expect(h.configs).ToNot(BeNil())
 		Expect(h.states).ToNot(BeNil())
-		Expect(h.tickers).ToNot(BeNil())
+		Expect(h.runners).ToNot(BeNil())
 	})
 }
 
@@ -274,12 +274,12 @@ func TestStart(t *testing.T) {
 
 		err = h.Start()
 		Expect(err).ToNot(HaveOccurred())
-		// Correct number of runners/tickers were created
-		Expect(len(h.tickers)).To(Equal(2))
+		// Correct number of runners were created
+		Expect(len(h.runners)).To(Equal(2))
 
-		// Tickers are created (and saved) based on their name
+		// Runners are created (and saved) based on their name
 		for _, v := range cfgs {
-			Expect(h.tickers).To(HaveKey(v.Name))
+			Expect(h.runners).To(HaveKey(v.Name))
 		}
 
 		// This is pretty brittle - will update if this is causing random test failures
@@ -325,20 +325,33 @@ func TestStop(t *testing.T) {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(h).ToNot(BeNil())
 
+		// A bit brittle, but it'll do
+		time.Sleep(time.Duration(15) * time.Millisecond)
+		Expect(len(h.states)).To(Equal(2))
+
 		err = h.Stop()
 		Expect(err).ToNot(HaveOccurred())
 
-		// Tickers map should be reset
-		Expect(h.tickers).To(BeEmpty())
+		// Wait a bit to ensure goroutines have exited
+		time.Sleep(15 * time.Millisecond)
+
+		// Runners map should be reset
+		Expect(h.runners).To(BeEmpty())
 
 		// Ensure that logger captured the start and stop messages
-		Expect(fakeLogger.DebugCallCount()).To(Equal(4))
+		Expect(fakeLogger.DebugCallCount()).To(Equal(6))
 
 		for i := range cfgs {
 			// 3rd and 4th message should indicate goroutine exit
 			msg, _ := fakeLogger.DebugArgsForCall(i + 2)
 			Expect(msg).To(Equal("Stopping checker"))
+
+			exitMsg, _ := fakeLogger.DebugArgsForCall(i + 4)
+			Expect(exitMsg).To(Equal("Checker exiting"))
 		}
+
+		// Expect state map to be reset
+		Expect(len(h.states)).To(Equal(0))
 	})
 
 	t.Run("Should error if healthcheck is not running", func(t *testing.T) {

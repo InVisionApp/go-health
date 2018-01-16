@@ -45,8 +45,8 @@ func setupRunners(cfgs []*Config, logger loggers.ILogger) (*Health, []*Config, e
 	}
 
 	// Correct number of runners/tickers were created
-	if len(h.tickers) != len(cfgs) {
-		return nil, nil, fmt.Errorf("Start() did not create the expected number of tickers")
+	if len(h.runners) != len(cfgs) {
+		return nil, nil, fmt.Errorf("Start() did not create the expected number of runners")
 	}
 
 	return h, cfgs, nil

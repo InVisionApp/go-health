@@ -79,7 +79,7 @@ type Health struct {
 	configs    []*Config
 	states     map[string]State
 	statesLock sync.Mutex
-	tickers    map[string]*time.Ticker // contains map of actively running tickers
+	runners    map[string]chan struct{} // contains map of active runners w/ a stop channel
 }
 
 // New returns a new instance of the Health struct.
@@ -88,7 +88,7 @@ func New() *Health {
 		Logger:     loggers.NewBasic(),
 		configs:    make([]*Config, 0),
 		states:     make(map[string]State, 0),
-		tickers:    make(map[string]*time.Ticker, 0),
+		runners:    make(map[string]chan struct{}, 0),
 		active:     newBool(),
 		failed:     newBool(), // init as false
 		statesLock: sync.Mutex{},
@@ -136,12 +136,13 @@ func (h *Health) Start() error {
 	for _, c := range h.configs {
 		h.Logger.Debug("Starting checker", map[string]interface{}{"name": c.Name})
 		ticker := time.NewTicker(c.Interval)
+		stop := make(chan struct{})
 
-		if err := h.startRunner(c, ticker); err != nil {
+		if err := h.startRunner(c, ticker, stop); err != nil {
 			return fmt.Errorf("Unable to create healthcheck runner '%v': %v", c.Name, err)
 		}
 
-		h.tickers[c.Name] = ticker
+		h.runners[c.Name] = stop
 	}
 
 	// Checkers are now actively running
@@ -157,13 +158,16 @@ func (h *Health) Stop() error {
 		return ErrAlreadyStopped
 	}
 
-	for name, ticker := range h.tickers {
+	for name, stop := range h.runners {
 		h.Logger.Debug("Stopping checker", map[string]interface{}{"name": name})
-		ticker.Stop()
+		close(stop)
 	}
 
-	// Reset ticker map
-	h.tickers = make(map[string]*time.Ticker, 0)
+	// Reset runner map
+	h.runners = make(map[string]chan struct{}, 0)
+
+	// Reset states
+	h.safeResetStates()
 
 	return nil
 }
@@ -186,7 +190,7 @@ func (h *Health) Failed() bool {
 	return h.failed.val()
 }
 
-func (h *Health) startRunner(cfg *Config, ticker *time.Ticker) error {
+func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struct{}) error {
 
 	// function to execute and collect check data
 	checkFunc := func() {
@@ -220,18 +224,32 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker) error {
 	}
 
 	go func() {
+		defer ticker.Stop()
+
 		// execute once so that it is immediate
 		checkFunc()
 
 		// all following executions
-		for range ticker.C {
-			checkFunc()
+	RunLoop:
+		for {
+			select {
+			case <-ticker.C:
+				checkFunc()
+			case <-stop:
+				break RunLoop
+			}
 		}
 
 		h.Logger.Debug("Checker exiting", map[string]interface{}{"name": cfg.Name})
 	}()
 
 	return nil
+}
+
+func (h *Health) safeResetStates() {
+	h.statesLock.Lock()
+	defer h.statesLock.Unlock()
+	h.states = make(map[string]State, 0)
 }
 
 func (h *Health) safeUpdateState(stateEntry *State) {
