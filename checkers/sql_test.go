@@ -2,6 +2,8 @@ package checkers
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -9,48 +11,114 @@ import (
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
-type testInvalidKind1 struct{}
-type testInvalidKind2 struct{}
-type testInvalidKind3 struct{}
-type testInvalidKind4 struct{}
-type testInvalidKind5 struct{}
-type testInvalidKind6 struct{}
-type testInvalidKind7 struct{}
-type testInvalidKind8 struct{}
-type testHealthyIPingable struct{}
-type testUnhealthyIPingable struct{}
+const execSQL = "UPDATE some_table"
+const querySQL = "SELECT some_column"
+
 type testHealthyPinger struct{}
+
 type testUnhealthyPinger struct{}
 
-func (iv *testInvalidKind1) Ping()                    {}
-func (iv *testInvalidKind2) Ping(ctx context.Context) {}
-func (iv *testInvalidKind3) Ping() (int, error) {
-	return 0, nil
-}
-func (iv *testInvalidKind4) Ping(ctx context.Context) (int, error) {
-	return 0, nil
-}
-func (iv *testInvalidKind5) Pong() {}
-func (iv *testInvalidKind6) Ping(s string) error {
+type nilExecer struct{}
+
+type nilQueryer struct{}
+
+type fakeSQLResult struct{}
+
+func (p *testHealthyPinger) PingContext(ctx context.Context) error {
 	return nil
 }
-func (iv *testInvalidKind7) Ping(x string, y string) error {
-	return nil
-}
-func (iv *testInvalidKind8) Ping(ctx context.Context) bool {
-	return true
-}
-func (p *testHealthyIPingable) Ping() error {
-	return nil
-}
-func (p *testUnhealthyIPingable) Ping() error {
+
+func (p *testUnhealthyPinger) PingContext(ctx context.Context) error {
 	return fmt.Errorf("ping failed")
 }
-func (p *testHealthyPinger) Ping(ctx context.Context) error {
-	return nil
+
+func (e *nilExecer) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	return nil, nil
 }
-func (p *testUnhealthyPinger) Ping(ctx context.Context) error {
-	return fmt.Errorf("ping failed")
+
+func (q *nilQueryer) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	return nil, nil
+}
+
+func (r *fakeSQLResult) LastInsertId() (int64, error) {
+	return 1, nil
+}
+
+func (r *fakeSQLResult) RowsAffected() (int64, error) {
+	return 0, errors.New("affected rows failure")
+}
+
+func errExecHandler(result sql.Result) (bool, error) {
+	return false, errors.New("exec handler failure")
+}
+
+func falseExecHandler(result sql.Result) (bool, error) {
+	return false, nil
+}
+
+func errQueryHandler(rows *sql.Rows) (bool, error) {
+	return false, errors.New("query handler failure")
+}
+
+func falseQueryHandler(rows *sql.Rows) (bool, error) {
+	return false, nil
+}
+
+func TestValidateSQLConfig(t *testing.T) {
+	RegisterTestingT(t)
+
+	t.Run("happy path with pinger", func(t *testing.T) {
+		hp := &testHealthyPinger{}
+		cfg := &SQLConfig{
+			Pinger: hp,
+		}
+
+		err := validateSQLConfig(cfg)
+		Expect(err).To(BeNil())
+	})
+
+	t.Run("happy path with Execer", func(t *testing.T) {
+		ex := &nilExecer{}
+		cfg := &SQLConfig{
+			Execer: ex,
+			Query:  "not important",
+		}
+
+		err := validateSQLConfig(cfg)
+		Expect(err).To(BeNil())
+	})
+
+	t.Run("sad path with nil config", func(t *testing.T) {
+		err := validateSQLConfig(nil)
+		Expect(err).ToNot(BeNil())
+	})
+
+	t.Run("sad path with Queryer and no query", func(t *testing.T) {
+		q := &nilQueryer{}
+		cfg := &SQLConfig{
+			Queryer: q,
+		}
+
+		err := validateSQLConfig(cfg)
+		Expect(err).ToNot(BeNil())
+	})
+
+	t.Run("sad path with Execer and no query", func(t *testing.T) {
+		ex := &nilExecer{}
+		cfg := &SQLConfig{
+			Execer: ex,
+		}
+
+		err := validateSQLConfig(cfg)
+		Expect(err).ToNot(BeNil())
+	})
+
+	t.Run("sad path with no actor", func(t *testing.T) {
+		cfg := &SQLConfig{}
+
+		err := validateSQLConfig(cfg)
+		Expect(err).ToNot(BeNil())
+	})
 }
 
 func TestNewSQL(t *testing.T) {
@@ -62,103 +130,16 @@ func TestNewSQL(t *testing.T) {
 		defer db.Close()
 
 		s, err := NewSQL(&SQLConfig{
-			DB: db,
+			Pinger: db,
 		})
 		Expect(err).To(BeNil())
 		Expect(s).ToNot(BeNil())
 	})
 
 	t.Run("sad path when config is nil", func(t *testing.T) {
-		_, err := NewSQL(nil)
-		Expect(err).ToNot(BeNil())
-	})
-
-	t.Run("sad path when DB is nil", func(t *testing.T) {
-		_, err := NewSQL(&SQLConfig{
-			DB: nil,
-		})
-		Expect(err).ToNot(BeNil())
-	})
-
-	t.Run("sad path using invalid interfaces", func(t *testing.T) {
-		var err error
-		var s *SQL
-
-		// testInvalidKind1 does not implement IPingable
-		// because it does not return an error
-		iv1 := &testInvalidKind1{}
-		s, err = NewSQL(&SQLConfig{
-			DB: iv1,
-		})
+		s, err := NewSQL(nil)
 		Expect(err).ToNot(BeNil())
 		Expect(s).To(BeNil())
-		Expect(err).To(Equal(badSQLImplementationError))
-
-		// testInvalidKind2 does not implement Pinger
-		// because it does not return an error
-		iv2 := &testInvalidKind2{}
-		s, err = NewSQL(&SQLConfig{
-			DB: iv2,
-		})
-		Expect(err).ToNot(BeNil())
-		Expect(s).To(BeNil())
-		Expect(err).To(Equal(badSQLImplementationError))
-
-		// testInvalidKind3 does not implement IPingable
-		// because it returns multiple values
-		iv3 := &testInvalidKind3{}
-		s, err = NewSQL(&SQLConfig{
-			DB: iv3,
-		})
-		Expect(err).ToNot(BeNil())
-		Expect(s).To(BeNil())
-		Expect(err).To(Equal(badSQLImplementationError))
-
-		// testInvalidKind4 does not implement Pinger
-		// because it returns multiple values
-		iv4 := &testInvalidKind4{}
-		s, err = NewSQL(&SQLConfig{
-			DB: iv4,
-		})
-		Expect(err).ToNot(BeNil())
-		Expect(s).To(BeNil())
-		Expect(err).To(Equal(badSQLImplementationError))
-
-		// testInvalidKind5 does not implement anything
-		iv5 := &testInvalidKind5{}
-		s, err = NewSQL(&SQLConfig{
-			DB: iv5,
-		})
-		Expect(err).ToNot(BeNil())
-		Expect(s).To(BeNil())
-		Expect(err).To(Equal(badSQLImplementationError))
-
-		// testInvalidKind6 has a bad function signature
-		iv6 := &testInvalidKind6{}
-		s, err = NewSQL(&SQLConfig{
-			DB: iv6,
-		})
-		Expect(err).ToNot(BeNil())
-		Expect(s).To(BeNil())
-		Expect(err).To(Equal(badSQLImplementationError))
-
-		// testInvalidKind7 has a bad function signature
-		iv7 := &testInvalidKind7{}
-		s, err = NewSQL(&SQLConfig{
-			DB: iv7,
-		})
-		Expect(err).ToNot(BeNil())
-		Expect(s).To(BeNil())
-		Expect(err).To(Equal(badSQLImplementationError))
-
-		// testInvalidKind7 returns the wrong type
-		iv8 := &testInvalidKind8{}
-		s, err = NewSQL(&SQLConfig{
-			DB: iv8,
-		})
-		Expect(err).ToNot(BeNil())
-		Expect(s).To(BeNil())
-		Expect(err).To(Equal(badSQLImplementationError))
 	})
 }
 
@@ -171,7 +152,7 @@ func TestSQLStatus(t *testing.T) {
 		defer db.Close()
 
 		s, err := NewSQL(&SQLConfig{
-			DB: db,
+			Pinger: db,
 		})
 		Expect(err).To(BeNil())
 		Expect(s).ToNot(BeNil())
@@ -183,34 +164,10 @@ func TestSQLStatus(t *testing.T) {
 		Expect(nothing).To(BeNil())
 	})
 
-	t.Run("IPingable returns healthy", func(t *testing.T) {
-		db := &testHealthyIPingable{}
-		s, err := NewSQL(&SQLConfig{
-			DB: db,
-		})
-		Expect(err).To(BeNil())
-		Expect(s).ToNot(BeNil())
-
-		_, err = s.Status()
-		Expect(err).ToNot(HaveOccurred())
-	})
-
-	t.Run("IPingable returns unhealthy", func(t *testing.T) {
-		db := &testUnhealthyIPingable{}
-		s, err := NewSQL(&SQLConfig{
-			DB: db,
-		})
-		Expect(err).To(BeNil())
-		Expect(s).ToNot(BeNil())
-
-		_, err = s.Status()
-		Expect(err).To(HaveOccurred())
-	})
-
-	t.Run("Pinger returns healthy", func(t *testing.T) {
+	t.Run("SQLPinger returns healthy", func(t *testing.T) {
 		db := &testHealthyPinger{}
 		s, err := NewSQL(&SQLConfig{
-			DB: db,
+			Pinger: db,
 		})
 		Expect(err).To(BeNil())
 		Expect(s).ToNot(BeNil())
@@ -222,12 +179,194 @@ func TestSQLStatus(t *testing.T) {
 	t.Run("IPingable returns unhealthy", func(t *testing.T) {
 		db := &testUnhealthyPinger{}
 		s, err := NewSQL(&SQLConfig{
-			DB: db,
+			Pinger: db,
 		})
 		Expect(err).To(BeNil())
 		Expect(s).ToNot(BeNil())
 
 		_, err = s.Status()
 		Expect(err).To(HaveOccurred())
+	})
+
+	t.Run("bad config", func(t *testing.T) {
+		s := &SQL{}
+		_, err := s.Status()
+		Expect(err).To(HaveOccurred())
+	})
+}
+
+func TestDefaultExecHandler(t *testing.T) {
+	RegisterTestingT(t)
+
+	t.Run("happy path", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		Expect(err).ToNot(HaveOccurred())
+		defer db.Close()
+
+		mock.ExpectExec(execSQL).WillReturnResult(sqlmock.NewResult(1, 1))
+		s, err := NewSQL(&SQLConfig{
+			Execer: db,
+			Query:  execSQL,
+		})
+		Expect(err).To(BeNil())
+
+		_, err = s.Status()
+		Expect(err).To(BeNil())
+
+	})
+
+	t.Run("direct call with failing Result interface", func(t *testing.T) {
+		result := &fakeSQLResult{}
+		ok, err := DefaultExecHandler(result)
+
+		Expect(err).ToNot(BeNil())
+		Expect(ok).To(BeFalse())
+	})
+}
+
+func TestRunExecer(t *testing.T) {
+	RegisterTestingT(t)
+
+	t.Run("ExecContext fails", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		Expect(err).ToNot(HaveOccurred())
+		defer db.Close()
+
+		mock.ExpectExec(execSQL).WillReturnError(errors.New("exec error"))
+
+		s, err := NewSQL(&SQLConfig{
+			Execer: db,
+			Query:  execSQL,
+		})
+		Expect(err).To(BeNil())
+
+		_, err = s.runExecer()
+		Expect(err).ToNot(BeNil())
+		Expect(err.Error()).To(Equal("exec error"))
+	})
+
+	t.Run("ExecerResultHandler fails", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		Expect(err).ToNot(HaveOccurred())
+		defer db.Close()
+
+		mock.ExpectExec(execSQL).WillReturnResult(sqlmock.NewResult(1, 1))
+
+		s, err := NewSQL(&SQLConfig{
+			Execer:              db,
+			Query:               execSQL,
+			ExecerResultHandler: errExecHandler,
+		})
+		Expect(err).To(BeNil())
+
+		_, err = s.runExecer()
+		Expect(err).ToNot(BeNil())
+		Expect(err.Error()).To(Equal("exec handler failure"))
+	})
+
+	t.Run("ExecerResultHandler returns false", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		Expect(err).ToNot(HaveOccurred())
+		defer db.Close()
+
+		mock.ExpectExec(execSQL).WillReturnResult(sqlmock.NewResult(1, 1))
+
+		s, err := NewSQL(&SQLConfig{
+			Execer:              db,
+			Query:               execSQL,
+			ExecerResultHandler: falseExecHandler,
+		})
+		Expect(err).To(BeNil())
+
+		_, err = s.runExecer()
+		Expect(err).ToNot(BeNil())
+		Expect(err.Error()).To(Equal("userland exec result handler returned false"))
+	})
+}
+
+func TestDefaultQueryHandler(t *testing.T) {
+	RegisterTestingT(t)
+
+	t.Run("happy path", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		Expect(err).ToNot(HaveOccurred())
+		defer db.Close()
+
+		rows := &sqlmock.Rows{}
+		rows.AddRow()
+		mock.ExpectQuery(querySQL).WillReturnRows(rows)
+		s, err := NewSQL(&SQLConfig{
+			Queryer: db,
+			Query:   querySQL,
+		})
+		Expect(err).To(BeNil())
+
+		_, err = s.Status()
+		Expect(err).To(BeNil())
+
+	})
+}
+
+func TestRunQueryer(t *testing.T) {
+	RegisterTestingT(t)
+
+	t.Run("QueryContext fails", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		Expect(err).ToNot(HaveOccurred())
+		defer db.Close()
+
+		mock.ExpectQuery(querySQL).WillReturnError(errors.New("query error"))
+
+		s, err := NewSQL(&SQLConfig{
+			Queryer: db,
+			Query:   querySQL,
+		})
+		Expect(err).To(BeNil())
+
+		_, err = s.runQueryer()
+		Expect(err).ToNot(BeNil())
+		Expect(err.Error()).To(Equal("query error"))
+	})
+
+	t.Run("QueryResultHandler fails", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		Expect(err).ToNot(HaveOccurred())
+		defer db.Close()
+
+		rows := &sqlmock.Rows{}
+		rows.AddRow()
+		mock.ExpectQuery(querySQL).WillReturnRows(rows)
+
+		s, err := NewSQL(&SQLConfig{
+			Queryer:              db,
+			Query:                querySQL,
+			QueryerResultHandler: errQueryHandler,
+		})
+		Expect(err).To(BeNil())
+
+		_, err = s.runQueryer()
+		Expect(err).ToNot(BeNil())
+		Expect(err.Error()).To(Equal("query handler failure"))
+	})
+
+	t.Run("QueryerResultHandler returns false", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		Expect(err).ToNot(HaveOccurred())
+		defer db.Close()
+
+		rows := &sqlmock.Rows{}
+		rows.AddRow()
+		mock.ExpectQuery(querySQL).WillReturnRows(rows)
+
+		s, err := NewSQL(&SQLConfig{
+			Queryer:              db,
+			Query:                querySQL,
+			QueryerResultHandler: falseQueryHandler,
+		})
+		Expect(err).To(BeNil())
+
+		_, err = s.runQueryer()
+		Expect(err).ToNot(BeNil())
+		Expect(err.Error()).To(Equal("userland query result handler returned false"))
 	})
 }
