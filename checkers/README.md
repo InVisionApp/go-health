@@ -123,9 +123,9 @@ The SQL DB checker has implementations for the following interfaces:
 	
 	// we pass the id we are looking for inside the params value
 	sqlCheck, err := checkers.NewSQL(&checkers.SQLConfig{
-		Queryerer: 			  db,
-		Query: 				  "SELECT healthValue FROM some_table WHERE id = ?",
-		Params: 			  []interface{}{1},
+		Queryerer:            db,
+		Query:                "SELECT healthValue FROM some_table WHERE id = ?",
+		Params:               []interface{}{1},
 		QueryerResultHandler: myQueryHandler
 	})
 	if err != nil {
@@ -181,8 +181,8 @@ The SQL DB checker has implementations for the following interfaces:
 	}
 	
 	sqlCheck, err := checkers.NewSQL(&checkers.SQLConfig{
-		Execer: 			 db,
-		Query: 				 "INSERT INTO checks (checkTS) VALUES (NOW())",
+		Execer:              db,
+		Query:               "INSERT INTO checks (checkTS) VALUES (NOW())",
 		ExecerResultHandler: myExecHandler
 	})
 	if err != nil {
