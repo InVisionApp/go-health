@@ -110,7 +110,7 @@ The SQL DB checker has implementations for the following interfaces:
 			// this query will ever return at most one row
 			if err := rows.Scan(&healthValue); err != nil {
 				return false, err
-			]
+			}
 		}
 		
 		return healthValue == "ok", nil
