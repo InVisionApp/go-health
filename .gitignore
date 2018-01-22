@@ -1,1 +1,3 @@
 *.sketch
+/vendor/
+.DS_Store

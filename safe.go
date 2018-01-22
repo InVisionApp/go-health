@@ -8,11 +8,11 @@ import "sync"
 
 type sBool struct {
 	v  bool
-	mu *sync.Mutex
+	mu sync.Mutex
 }
 
 func newBool() *sBool {
-	return &sBool{v: false, mu: &sync.Mutex{}}
+	return &sBool{v: false}
 }
 
 func (b *sBool) setFalse() {
