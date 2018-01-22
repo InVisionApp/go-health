@@ -33,13 +33,170 @@ The `RedisConfig` must contain a valid `RedisAuthConfig` and at least _one_ chec
 Refer to the godocs for additional info.
 
 ### SQL DB
-The SQL DB checker allows you to use the `Ping` functionality provided in `sql.DB`.  You can also implement the 
-`Pinger` interface in `sql/drivers`.  This health check will work with any database abstraction that either 
-embeds a native sql Conn or provides it in a field.
 
-To use it, create a `SQLConfig` struct and pass it into `checkers.NewSQL(...)`
+The SQL DB checker has implementations for the following interfaces:
 
-The `DB` field (the only exported field) in `SQLConfig` is **required**.
+- `SQLPinger`, which encloses `PingContext` in [`sql.DB`](https://golang.org/pkg/database/sql/#DB.PingContext) and [`sql.Conn`](https://golang.org/pkg/database/sql/#Conn.PingContext)
+- `SQLQueryer`, which encloses `QueryContext` in [`sql.DB`](https://golang.org/pkg/database/sql/#DB.QueryContext), [`sql.Conn`](https://golang.org/pkg/database/sql/#Conn.QueryContext), [`sql.Stmt`](https://golang.org/pkg/database/sql/#Stmt.QueryContext), and [`sql.Tx`](https://golang.org/pkg/database/sql/#Tx.QueryContext)
+- `SQLExecer`, which encloses `ExecContext` in [`sql.DB`](https://golang.org/pkg/database/sql/#DB.ExecContext), [`sql.Conn`](https://golang.org/pkg/database/sql/#Conn.ExecContext), [`sql.Stmt`](https://golang.org/pkg/database/sql/#Stmt.ExecContext), and [`sql.Tx`](https://golang.org/pkg/database/sql/#Tx.ExecContext)
+
+	#### SQLConfig
+	The `SQLConfig` struct is required when using the SQL DB health check.  It **must** contain an inplementation of one of either `SQLPinger`, `SQLQueryer`, or `SQLExecer`.
+	
+	If `SQLQueryer` or `SQLExecer` are implemented, then `Query` must be valid (len > 0).
+	
+	Additionally, if `SQLQueryer` or `SQLExecer` are implemented, you have the option to also set either the `QueryerResultHandler` or `ExecerResultHandler` functions.  These functions allow you to evaluate the result of a query or exec operation.  If you choose not to implement these yourself, the default handlers are used.
+	
+	The default `ExecerResultHandler` is successful if the passed exec operation affected one and only one row.
+	
+	The default `QueryerResultHandler` is successful if the passed query operation returned one and only one row.
+	
+	#### SQLPinger
+    Use the `SQLPinger` interface if your health check is only concerned with your application's database connectivity.  All you need to do is set the `Pinger` value in your `SQLConfig`.
+    
+	```golang
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return err
+	}
+	
+	sqlCheck, err := checkers.NewSQL(&checkers.SQLConfig{
+		Pinger: db
+	})
+	if err != nil {
+		return err
+	}
+	
+	hc := health.New()
+	healthCheck.AddCheck(&health.Config{
+		Name:     "sql-check",
+		Checker:  sqlCheck,
+		Interval: time.Duration(3) * time.Second,
+		Fatal:    true,
+	})
+	```
+
+	#### SQLQueryer
+	Use the `SQLQueryer` interface if your health check requires you to read rows from your database.  You can optionally supply a query result handler function.  If you don't supply one, the default function will be used.  The function signature for the handler is:
+	
+	```golang
+	type SQLQueryerResultHandler func(rows *sql.Rows) (bool, error)
+	```
+	The default query handler returns true if there was exactly one row in the resultset:
+	
+	```golang
+	func DefaultQueryHandler(rows *sql.Rows) (bool, error) {
+		defer rows.Close()
+		
+		numRows := 0
+		for rows.Next() {
+			numRows++
+		}
+		
+		return numRows == 1, nil
+	}
+	```
+	**IMPORTANT**: Note that your query handler is responsible for closing the passed `*sql.Rows` value.
+
+	Sample `SQLQueryer` implementation:
+	
+	```golang
+	// this is our custom query row handler
+	func myQueryHandler(rows *sql.Rows) (bool, error) {
+		defer rows.Close()
+		
+		var healthValue string
+		for rows.Next() {
+			// this query will ever return at most one row
+			if err := rows.Scan(&healthValue); err != nil {
+				return false, err
+			]
+		}
+		
+		return healthValue == "ok", nil
+	}
+	
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return err
+	}
+	
+	// we pass the id we are looking for inside the params value
+	sqlCheck, err := checkers.NewSQL(&checkers.SQLConfig{
+		Queryerer: 			  db,
+		Query: 				  "SELECT healthValue FROM some_table WHERE id = ?",
+		Params: 			  []interface{}{1},
+		QueryerResultHandler: myQueryHandler
+	})
+	if err != nil {
+		return err
+	}
+	
+	hc := health.New()
+	healthCheck.AddCheck(&health.Config{
+		Name:     "sql-check",
+		Checker:  sqlCheck,
+		Interval: time.Duration(3) * time.Second,
+		Fatal:    true,
+	})
+	```
+
+	#### SQLExecer
+	Use the `SQLExecer` interface if your health check requires you to update or insert to your database.  You can optionally supply an exec result handler function.  If you don't supply one, the default function will be used.  The function signature for the handler is:
+	
+	```golang
+	type SQLExecerResultHandler func(result sql.Result) (bool, error)
+	```
+	The default exec handler returns true if there was exactly one affected row:
+	
+	```golang
+	func DefaultExecHandler(result sql.Result) (bool, error) {
+		affectedRows, err := result.RowsAffected()
+		if err != nil {
+			return false, err
+		}
+		
+		return affectedRows == int64(1), nil
+	}
+	```
+
+	Sample `SQLExecer ` implementation:
+	
+	```golang
+	// this is our custom exec result handler
+	func myExecHandler(result sql.Result) (bool, error) {
+		insertId, err := result.LastInsertId()
+		if err != nil {
+			return false, err
+		}
+		
+		// for this example, a check isn't valid 
+		// until after the 100th iteration
+		return insertId > int64(100), nil
+	}
+	
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return err
+	}
+	
+	sqlCheck, err := checkers.NewSQL(&checkers.SQLConfig{
+		Execer: 			 db,
+		Query: 				 "INSERT INTO checks (checkTS) VALUES (NOW())",
+		ExecerResultHandler: myExecHandler
+	})
+	if err != nil {
+		return err
+	}
+	
+	hc := health.New()
+	healthCheck.AddCheck(&health.Config{
+		Name:     "sql-check",
+		Checker:  sqlCheck,
+		Interval: time.Duration(3) * time.Second,
+		Fatal:    true,
+	})
+	```
 
 ### Mongo
 Planned, but PR's welcome!

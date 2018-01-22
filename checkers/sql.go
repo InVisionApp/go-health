@@ -56,13 +56,29 @@ type SQLExecerResultHandler func(result sql.Result) (bool, error)
 // Pinger implements the SQLPinger interface in this package.
 // The sql.DB struct implements this interface.
 type SQLConfig struct {
-	Pinger               SQLPinger
-	Queryer              SQLQueryer
-	Execer               SQLExecer
-	Query                string
-	Params               []interface{}
+	// Pinger is the value implementing SQLPinger
+	Pinger SQLPinger
+
+	// Queryer is the value implementing SQLQueryer
+	Queryer SQLQueryer
+
+	// Execer is the value implementing SQLExecer
+	Execer SQLExecer
+
+	// Query is the parameterized SQL query required
+	// with both Queryer and Execer
+	Query string
+
+	// Params are the SQL query parameters, if any
+	Params []interface{}
+
+	// QueryerResultHandler handles the result of
+	// the QueryContext function
 	QueryerResultHandler SQLQueryerResultHandler
-	ExecerResultHandler  SQLExecerResultHandler
+
+	// ExecerResultHandler handles the result of
+	// the ExecContext function
+	ExecerResultHandler SQLExecerResultHandler
 }
 
 // SQL implements the "ICheckable" interface
