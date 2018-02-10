@@ -214,10 +214,9 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struc
 			stateEntry.Status = "failed"
 		}
 
-		// Toggle the global state failure if this check is allowed to cause
-		// a complete healthcheck failure.
-		if err != nil && cfg.Fatal {
-			h.failed.setTrue()
+		// Toggle the global failed state if check is configured as fatal
+		if cfg.Fatal {
+			h.failed.set(err != nil)
 		}
 
 		h.safeUpdateState(stateEntry)
