@@ -211,7 +211,7 @@ func TestState(t *testing.T) {
 		Expect(states["foo"].Err).To(Equal("things broke"))
 	})
 
-	t.Run("When a fatally-configured check fails, states should return 'true' for failed bool", func(t *testing.T) {
+	t.Run("When a fatally-configured check fails and recovers, state should get updated accordingly", func(t *testing.T) {
 		h := New()
 		checker1 := &fakes.FakeICheckable{}
 		checker1.StatusReturns(nil, fmt.Errorf("things broke"))
@@ -239,6 +239,17 @@ func TestState(t *testing.T) {
 		Expect(failed).To(BeTrue())
 		Expect(states).To(HaveKey("foo"))
 		Expect(states["foo"].Err).To(Equal("things broke"))
+
+		// And now, let's let it recover
+		checker1.StatusReturns(nil, nil)
+		time.Sleep(time.Duration(15) * time.Millisecond)
+
+		statesRecov, failedRecov, errRecov := h.State()
+		Expect(errRecov).ToNot(HaveOccurred())
+		Expect(failedRecov).To(BeFalse())
+		Expect(statesRecov).To(HaveKey("foo"))
+		Expect(statesRecov["foo"].Err).To(BeEmpty())
+
 	})
 
 }
