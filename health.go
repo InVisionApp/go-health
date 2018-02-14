@@ -111,7 +111,8 @@ func (h *Health) AddChecks(cfgs []*Config) error {
 		return ErrEmptyConfigs
 	}
 
-	h.configs = cfgs
+	h.configs = append(h.configs, cfgs...)
+
 	return nil
 }
 
