@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/InVisionApp/go-health"
 )
@@ -11,6 +12,11 @@ import (
 type jsonStatus struct {
 	Message string `json:"message"`
 	Status  string `json:"status"`
+}
+
+type mutexMap struct {
+	sync.Mutex
+	data map[string]interface{}
 }
 
 // NewBasicHandlerFunc will return an `http.HandlerFunc` that will write `ok`
@@ -59,18 +65,21 @@ func NewJSONHandlerFunc(h health.IHealth, custom map[string]interface{}) http.Ha
 			statusCode = http.StatusInternalServerError
 		}
 
-		fullBody := map[string]interface{}{
+		fullBody := mutexMap{}
+		fullBody.Lock()
+		fullBody.data = map[string]interface{}{
 			"status":  msg,
 			"details": states,
 		}
 
 		for k, v := range custom {
 			if k != "status" && k != "details" {
-				fullBody[k] = v
+				fullBody.data[k] = v
 			}
 		}
 
-		data, err := json.Marshal(fullBody)
+		data, err := json.Marshal(fullBody.data)
+		fullBody.Unlock()
 		if err != nil {
 			writeJSONStatus(rw, "error", fmt.Sprintf("Failed to marshal state data: %v", err), http.StatusOK)
 			return
