@@ -20,7 +20,7 @@ func NewLogrus(logger *logrus.Entry) ILogger {
 }
 
 func (l *shim) Debug(msg string, args map[string]interface{}) {
-	l.logger.WithFields(args).Warn(msg)
+	l.logger.WithFields(args).Debug(msg)
 }
 
 func (l *shim) Info(msg string, args map[string]interface{}) {
