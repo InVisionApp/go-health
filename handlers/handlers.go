@@ -100,6 +100,7 @@ func writeJSONStatus(rw http.ResponseWriter, status, message string, statusCode 
 
 func writeJSONResponse(rw http.ResponseWriter, statusCode int, content []byte) {
 	rw.Header().Set("Content-Type", "application/json")
+	rw.Header().Set("Content-Length", fmt.Sprintf("%d", len(content)))
 	rw.WriteHeader(statusCode)
 	rw.Write(content)
 }

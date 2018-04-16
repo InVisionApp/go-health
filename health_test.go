@@ -1,8 +1,10 @@
 package health
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"log"
 	"testing"
 	"time"
 
@@ -14,7 +16,20 @@ import (
 
 var (
 	testCheckInterval = time.Duration(10) * time.Millisecond
+	logBuffer         *bytes.Buffer
 )
+
+type MockStatusListener struct{}
+
+func (mock *MockStatusListener) HealthCheckFailed(name string) {
+	l := log.New(logBuffer, "", 0)
+	l.Println(name)
+}
+
+func (mock *MockStatusListener) HealthCheckRecovered(name string, recordedFailures int64, failureDurationSeconds float64) {
+	l := log.New(logBuffer, "", 0)
+	l.Println(name, recordedFailures, failureDurationSeconds)
+}
 
 func TestNew(t *testing.T) {
 	RegisterTestingT(t)
@@ -486,5 +501,102 @@ func TestStartRunner(t *testing.T) {
 
 		// Since second checker has failed fatally, global healthcheck state should be failed as well
 		Expect(h.failed.val()).To(BeTrue())
+	})
+}
+
+func TestStatusListenerOnFail(t *testing.T) {
+	RegisterTestingT(t)
+
+	t.Run("happy path - a health check fails and failure is reported, no previous states", func(tt *testing.T) {
+		logBuffer = bytes.NewBuffer([]byte{})
+		checker := &fakes.FakeICheckable{}
+		checkErr := errors.New("check error")
+		checker.StatusReturns(nil, checkErr)
+		cfgs := []*Config{
+			{
+				Name:     "FOOCHECK",
+				Checker:  checker,
+				Interval: testCheckInterval,
+				Fatal:    false,
+			},
+		}
+		h, _, err := setupRunners(cfgs, nil)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(h).ToNot(BeNil())
+
+		// add listener
+		h.StatusListener = &MockStatusListener{}
+
+		// let the health check run once
+		time.Sleep(5 * time.Millisecond)
+
+		logData := string(logBuffer.Bytes())
+		Expect(logData).To(ContainSubstring("FOOCHECK"))
+	})
+
+	t.Run("happy path - a health check fails and failure is reported, 3 previous states", func(tt *testing.T) {
+		logBuffer = bytes.NewBuffer([]byte{})
+		checker := &fakes.FakeICheckable{}
+		checkErr := errors.New("check error")
+		checker.StatusReturnsOnCall(3, nil, checkErr)
+		cfgs := []*Config{
+			{
+				Name:     "FOOCHECK",
+				Checker:  checker,
+				Interval: testCheckInterval,
+				Fatal:    false,
+			},
+		}
+		h, _, err := setupRunners(cfgs, nil)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(h).ToNot(BeNil())
+
+		// add listener
+		h.StatusListener = &MockStatusListener{}
+
+		// let the health check run once
+		time.Sleep(35 * time.Millisecond)
+
+		logData := string(logBuffer.Bytes())
+		Expect(logData).To(ContainSubstring("FOOCHECK"))
+	})
+}
+
+func TestStatusListenerOnRecover(t *testing.T) {
+	RegisterTestingT(t)
+
+	t.Run("happy path - health check recovers after 3 errors", func(tt *testing.T) {
+		logBuffer = bytes.NewBuffer([]byte{})
+		checker := &fakes.FakeICheckable{}
+		checkErr := errors.New("check error")
+		checker.StatusReturnsOnCall(0, nil, checkErr)
+		checker.StatusReturnsOnCall(1, nil, checkErr)
+		checker.StatusReturnsOnCall(2, nil, checkErr)
+
+		cfgs := []*Config{
+			{
+				Name:     "FOOCHECK",
+				Checker:  checker,
+				Interval: testCheckInterval,
+				Fatal:    false,
+			},
+		}
+		h, _, err := setupRunners(cfgs, nil)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(h).ToNot(BeNil())
+
+		// add listener
+		h.StatusListener = &MockStatusListener{}
+
+		// let the health check recover and run a few more times
+		time.Sleep(55 * time.Millisecond)
+
+		// check name, number of total failures, number of seconds in failure
+		testStr := "FOOCHECK 3 0.03"
+
+		Expect(string(logBuffer.Bytes())).To(ContainSubstring(testStr))
 	})
 }
