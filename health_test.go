@@ -599,7 +599,6 @@ func TestStatusListenerOnRecover(t *testing.T) {
 
 		// check name, number of total failures, number of seconds in failure
 		testStr := "FOOCHECK3 0.03"
-		fmt.Println(string(testLogger.Bytes()))
 
 		Expect(string(testLogger.Bytes())).To(ContainSubstring(testStr))
 	})
