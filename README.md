@@ -42,6 +42,7 @@ This library:
 * Is test-friendly
     + Provides an easy way to disable dependency health checking.
     + Uses an interface for its dependencies, allowing you to insert fakes/mocks at test time.
+* Allows you to trigger listener functions when a health check fails or recovers. **[3]**
 
 **[1]** Make sure to run your checks on a "sane" interval - ie. if you are checking your
 Redis dependency once every five minutes, your service is essentially running _blind_
@@ -52,6 +53,8 @@ every X _seconds_, rather than X _minutes_.
 you to query that data via `.State()`. Alternatively, you can use one of the
 pre-built HTTP handlers for your `/healthcheck` endpoint (and thus not have to
 manually inspect the state data).
+
+**[3]** By utilizing an implementation of the `IStatusListener` interface
 
 ## Example
 
