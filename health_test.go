@@ -1,41 +1,47 @@
 package health
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
 
 	"github.com/InVisionApp/go-health/fakes"
-	"github.com/InVisionApp/go-health/loggers"
+	"github.com/InVisionApp/go-logger"
+	"github.com/InVisionApp/go-logger/shims/testlog"
 )
 
 var (
 	testCheckInterval = time.Duration(10) * time.Millisecond
-	logBuffer         *bytes.Buffer
+	testLogger        *testlog.TestLogger
 )
 
 type MockStatusListener struct{}
 
 func (mock *MockStatusListener) HealthCheckFailed(name string) {
-	l := log.New(logBuffer, "", 0)
-	l.Println(name)
+	testLogger.Debug(name)
 }
 
 func (mock *MockStatusListener) HealthCheckRecovered(name string, recordedFailures int64, failureDurationSeconds float64) {
-	l := log.New(logBuffer, "", 0)
-	l.Println(name, recordedFailures, failureDurationSeconds)
+	testLogger.Debug(name, recordedFailures, failureDurationSeconds)
+}
+
+// since we dont have before each in this testing framework...
+func setupNewTestHealth() *Health {
+	h := New()
+	// replace with silent logger
+	h.Logger = log.NewNoop()
+
+	return h
 }
 
 func TestNew(t *testing.T) {
 	RegisterTestingT(t)
 
 	t.Run("Should return a filled out instance of Health", func(t *testing.T) {
-		h := New()
+		h := setupNewTestHealth()
 
 		Expect(h.configs).ToNot(BeNil())
 		Expect(h.states).ToNot(BeNil())
@@ -47,7 +53,7 @@ func TestAddChecks(t *testing.T) {
 	RegisterTestingT(t)
 
 	t.Run("Happy path", func(t *testing.T) {
-		h := New()
+		h := setupNewTestHealth()
 		testConfig := &Config{
 			Name:     "foo",
 			Checker:  &fakes.FakeICheckable{},
@@ -63,7 +69,7 @@ func TestAddChecks(t *testing.T) {
 	})
 
 	t.Run("Should error if healthcheck is already running", func(t *testing.T) {
-		h := New()
+		h := setupNewTestHealth()
 		h.active.setTrue()
 		err := h.AddChecks([]*Config{})
 
@@ -72,7 +78,7 @@ func TestAddChecks(t *testing.T) {
 	})
 
 	t.Run("Should error if passed in empty config slice", func(t *testing.T) {
-		h := New()
+		h := setupNewTestHealth()
 		err := h.AddChecks([]*Config{})
 
 		Expect(err).To(HaveOccurred())
@@ -84,7 +90,7 @@ func TestAddCheck(t *testing.T) {
 	RegisterTestingT(t)
 
 	t.Run("Happy path", func(t *testing.T) {
-		h := New()
+		h := setupNewTestHealth()
 		testConfig := &Config{
 			Name:     "foo",
 			Checker:  &fakes.FakeICheckable{},
@@ -100,7 +106,7 @@ func TestAddCheck(t *testing.T) {
 	})
 
 	t.Run("Should error if healthcheck is already running", func(t *testing.T) {
-		h := New()
+		h := setupNewTestHealth()
 		h.active.setTrue()
 		err := h.AddCheck(&Config{})
 
@@ -115,11 +121,11 @@ func TestDisableLogging(t *testing.T) {
 	t.Run("Should set logger to noop logger", func(t *testing.T) {
 		h := New()
 		// Should initially be set to a basic logger
-		Expect(h.Logger).To(BeEquivalentTo(loggers.NewBasic()))
+		Expect(h.Logger).To(BeEquivalentTo(log.NewSimple()))
 
 		// Should set it to a noop logger
 		h.DisableLogging()
-		Expect(h.Logger).To(BeEquivalentTo(loggers.NewNoop()))
+		Expect(h.Logger).To(BeEquivalentTo(log.NewNoop()))
 	})
 }
 
@@ -128,7 +134,7 @@ func TestFailed(t *testing.T) {
 
 	t.Run("Should return false if a fatally configured check hasn't errored", func(t *testing.T) {
 		t.Run("Happy path", func(t *testing.T) {
-			h := New()
+			h := setupNewTestHealth()
 			checker1 := &fakes.FakeICheckable{}
 			checker1.StatusReturns(nil, nil)
 
@@ -161,7 +167,7 @@ func TestFailed(t *testing.T) {
 	})
 
 	t.Run("Should return true if a fatally configured check has failed", func(t *testing.T) {
-		h := New()
+		h := setupNewTestHealth()
 		checker1 := &fakes.FakeICheckable{}
 		checker1.StatusReturns(nil, fmt.Errorf("things broke"))
 
@@ -197,7 +203,7 @@ func TestState(t *testing.T) {
 	RegisterTestingT(t)
 
 	t.Run("Happy path", func(t *testing.T) {
-		h := New()
+		h := setupNewTestHealth()
 		checker1 := &fakes.FakeICheckable{}
 		checker1.StatusReturns(nil, fmt.Errorf("things broke"))
 
@@ -227,7 +233,7 @@ func TestState(t *testing.T) {
 	})
 
 	t.Run("When a fatally-configured check fails and recovers, state should get updated accordingly", func(t *testing.T) {
-		h := New()
+		h := setupNewTestHealth()
 		checker1 := &fakes.FakeICheckable{}
 		checker1.StatusReturns(nil, fmt.Errorf("things broke"))
 
@@ -273,7 +279,7 @@ func TestStart(t *testing.T) {
 	RegisterTestingT(t)
 
 	t.Run("Happy path", func(t *testing.T) {
-		h := New()
+		h := setupNewTestHealth()
 		checker1 := &fakes.FakeICheckable{}
 		checker2 := &fakes.FakeICheckable{}
 
@@ -295,8 +301,8 @@ func TestStart(t *testing.T) {
 		err := h.AddChecks(cfgs)
 		Expect(err).ToNot(HaveOccurred())
 
-		fakeLogger := &fakes.FakeILogger{}
-		h.Logger = fakeLogger
+		testLogger := testlog.New()
+		h.Logger = testLogger
 
 		err = h.Start()
 		Expect(err).ToNot(HaveOccurred())
@@ -320,16 +326,16 @@ func TestStart(t *testing.T) {
 		Expect(h.states).To(HaveKey("bar"))
 
 		// Ensure that logger was hit as expected
-		Expect(fakeLogger.DebugCallCount()).To(Equal(2))
+		Expect(testLogger.CallCount()).To(Equal(2))
 
-		for i := range cfgs {
-			msg, _ := fakeLogger.DebugArgsForCall(i)
-			Expect(msg).To(Equal("Starting checker"))
+		msgs := testLogger.Bytes()
+		for _, cfg := range cfgs {
+			Expect(msgs).To(ContainSubstring("Starting checker name=" + cfg.Name))
 		}
 	})
 
 	t.Run("Should error if healthcheck already running", func(t *testing.T) {
-		h := New()
+		h := setupNewTestHealth()
 
 		err := h.AddCheck(&Config{})
 		Expect(err).ToNot(HaveOccurred())
@@ -345,8 +351,8 @@ func TestStop(t *testing.T) {
 	RegisterTestingT(t)
 
 	t.Run("Happy path", func(t *testing.T) {
-		fakeLogger := &fakes.FakeILogger{}
-		h, cfgs, err := setupRunners(nil, fakeLogger)
+		testLogger := testlog.New()
+		h, cfgs, err := setupRunners(nil, testLogger)
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(h).ToNot(BeNil())
@@ -365,15 +371,14 @@ func TestStop(t *testing.T) {
 		Expect(h.runners).To(BeEmpty())
 
 		// Ensure that logger captured the start and stop messages
-		Expect(fakeLogger.DebugCallCount()).To(Equal(6))
+		Expect(testLogger.CallCount()).To(Equal(6))
 
-		for i := range cfgs {
+		for _, cfg := range cfgs {
 			// 3rd and 4th message should indicate goroutine exit
-			msg, _ := fakeLogger.DebugArgsForCall(i + 2)
-			Expect(msg).To(Equal("Stopping checker"))
+			msgs := testLogger.Bytes()
+			Expect(msgs).To(ContainSubstring("Stopping checker name=" + cfg.Name))
 
-			exitMsg, _ := fakeLogger.DebugArgsForCall(i + 4)
-			Expect(exitMsg).To(Equal("Checker exiting"))
+			Expect(msgs).To(ContainSubstring("Checker exiting name=" + cfg.Name))
 		}
 
 		// Expect state map to be reset
@@ -381,7 +386,7 @@ func TestStop(t *testing.T) {
 	})
 
 	t.Run("Should error if healthcheck is not running", func(t *testing.T) {
-		h := New()
+		h := setupNewTestHealth()
 
 		err := h.AddCheck(&Config{})
 		Expect(err).ToNot(HaveOccurred())
@@ -508,7 +513,7 @@ func TestStatusListenerOnFail(t *testing.T) {
 	RegisterTestingT(t)
 
 	t.Run("happy path - a health check fails and failure is reported, no previous states", func(tt *testing.T) {
-		logBuffer = bytes.NewBuffer([]byte{})
+		testLogger = testlog.New()
 		checker := &fakes.FakeICheckable{}
 		checkErr := errors.New("check error")
 		checker.StatusReturns(nil, checkErr)
@@ -531,12 +536,11 @@ func TestStatusListenerOnFail(t *testing.T) {
 		// let the health check run once
 		time.Sleep(5 * time.Millisecond)
 
-		logData := string(logBuffer.Bytes())
-		Expect(logData).To(ContainSubstring("FOOCHECK"))
+		Expect(string(testLogger.Bytes())).To(ContainSubstring("FOOCHECK"))
 	})
 
 	t.Run("happy path - a health check fails and failure is reported, 3 previous states", func(tt *testing.T) {
-		logBuffer = bytes.NewBuffer([]byte{})
+		testLogger = testlog.New()
 		checker := &fakes.FakeICheckable{}
 		checkErr := errors.New("check error")
 		checker.StatusReturnsOnCall(3, nil, checkErr)
@@ -559,8 +563,7 @@ func TestStatusListenerOnFail(t *testing.T) {
 		// let the health check run once
 		time.Sleep(35 * time.Millisecond)
 
-		logData := string(logBuffer.Bytes())
-		Expect(logData).To(ContainSubstring("FOOCHECK"))
+		Expect(string(testLogger.Bytes())).To(ContainSubstring("FOOCHECK"))
 	})
 }
 
@@ -568,7 +571,7 @@ func TestStatusListenerOnRecover(t *testing.T) {
 	RegisterTestingT(t)
 
 	t.Run("happy path - health check recovers after 3 errors", func(tt *testing.T) {
-		logBuffer = bytes.NewBuffer([]byte{})
+		testLogger = testlog.New()
 		checker := &fakes.FakeICheckable{}
 		checkErr := errors.New("check error")
 		checker.StatusReturnsOnCall(0, nil, checkErr)
@@ -595,8 +598,9 @@ func TestStatusListenerOnRecover(t *testing.T) {
 		time.Sleep(55 * time.Millisecond)
 
 		// check name, number of total failures, number of seconds in failure
-		testStr := "FOOCHECK 3 0.03"
+		testStr := "FOOCHECK3 0.03"
+		fmt.Println(string(testLogger.Bytes()))
 
-		Expect(string(logBuffer.Bytes())).To(ContainSubstring(testStr))
+		Expect(string(testLogger.Bytes())).To(ContainSubstring(testStr))
 	})
 }

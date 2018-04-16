@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/InVisionApp/go-health/loggers"
+	"github.com/InVisionApp/go-logger"
 )
 
 //go:generate counterfeiter -o ./fakes/icheckable.go . ICheckable
@@ -115,8 +115,7 @@ func (s *State) isFailure() bool {
 
 // Health contains internal go-health internal structures.
 type Health struct {
-	// Logger is the logger used to report health check results
-	Logger loggers.ILogger
+	Logger log.Logger
 
 	// StatusListener will report failures and recoveries
 	StatusListener IStatusListener
@@ -132,7 +131,7 @@ type Health struct {
 // New returns a new instance of the Health struct.
 func New() *Health {
 	return &Health{
-		Logger:     loggers.NewBasic(),
+		Logger:     log.NewSimple(),
 		configs:    make([]*Config, 0),
 		states:     make(map[string]State, 0),
 		runners:    make(map[string]chan struct{}, 0),
@@ -144,7 +143,7 @@ func New() *Health {
 
 // DisableLogging will disable all logging by inserting the noop logger.
 func (h *Health) DisableLogging() {
-	h.Logger = loggers.NewNoop()
+	h.Logger = log.NewNoop()
 }
 
 // AddChecks is used for adding multiple check definitions at once (as opposed
@@ -182,7 +181,7 @@ func (h *Health) Start() error {
 	}
 
 	for _, c := range h.configs {
-		h.Logger.Debug("Starting checker", map[string]interface{}{"name": c.Name})
+		h.Logger.WithFields(log.Fields{"name": c.Name}).Debug("Starting checker")
 		ticker := time.NewTicker(c.Interval)
 		stop := make(chan struct{})
 
@@ -205,7 +204,7 @@ func (h *Health) Stop() error {
 	}
 
 	for name, stop := range h.runners {
-		h.Logger.Debug("Stopping checker", map[string]interface{}{"name": name})
+		h.Logger.WithFields(log.Fields{"name": name}).Debug("Stopping checker")
 		close(stop)
 	}
 
@@ -250,11 +249,11 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struc
 		}
 
 		if err != nil {
-			h.Logger.Error("healthcheck has failed", map[string]interface{}{
+			h.Logger.WithFields(log.Fields{
 				"check": cfg.Name,
 				"fatal": cfg.Fatal,
 				"err":   err,
-			})
+			}).Error("healthcheck has failed")
 
 			stateEntry.Err = err.Error()
 			stateEntry.Status = "failed"
@@ -285,7 +284,7 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struc
 			}
 		}
 
-		h.Logger.Debug("Checker exiting", map[string]interface{}{"name": cfg.Name})
+		h.Logger.WithFields(log.Fields{"name": cfg.Name}).Debug("Checker exiting")
 	}()
 }
 
