@@ -20,12 +20,12 @@ var (
 
 type MockStatusListener struct{}
 
-func (mock *MockStatusListener) HealthCheckFailed(name string) {
-	testLogger.Debug(name)
+func (mock *MockStatusListener) HealthCheckFailed(entry *State) {
+	testLogger.Debug(entry.Name)
 }
 
-func (mock *MockStatusListener) HealthCheckRecovered(name string, recordedFailures int64, failureDurationSeconds float64) {
-	testLogger.Debug(name, recordedFailures, failureDurationSeconds)
+func (mock *MockStatusListener) HealthCheckRecovered(entry *State, recordedFailures int64, failureDurationSeconds float64) {
+	testLogger.Debug(entry.Name, recordedFailures, failureDurationSeconds)
 }
 
 // since we dont have before each in this testing framework...

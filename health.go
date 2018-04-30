@@ -57,16 +57,16 @@ type IStatusListener interface {
 	// HealthCheckFailed is a function that handles the failure of a health
 	// check event. This function is called when a health check state
 	// transitions from passing to failing.
-	// 	* name - the name of the health check that failed
-	HealthCheckFailed(name string)
+	// 	* entry - The recorded state of the health check that triggered the failure
+	HealthCheckFailed(entry *State)
 
 	// HealthCheckRecovered is a function that handles the recovery of a failed
 	// health check.
-	// 	* name - the name of the health check that recovered
+	// 	* entry - The recorded state of the health check that triggered the recovery
 	// 	* recordedFailures - the total failed health checks that lapsed
 	// 	  between the failure and recovery
 	//	* failureDurationSeconds - the lapsed time, in seconds, of the recovered failure
-	HealthCheckRecovered(name string, recordedFailures int64, failureDurationSeconds float64)
+	HealthCheckRecovered(entry *State, recordedFailures int64, failureDurationSeconds float64)
 }
 
 // Config is a struct used for defining and configuring checks.
@@ -104,8 +104,8 @@ type State struct {
 	// CheckTime is the time of the last health check
 	CheckTime time.Time `json:"check_time"`
 
-	numContiguousFailures int64     // the number of failures that occurred in a row
-	timeOfFirstFailure    time.Time // the time of the initial transitional failure for any given health check
+	contiguousFailures int64     // the number of failures that occurred in a row
+	timeOfFirstFailure time.Time // the time of the initial transitional failure for any given health check
 }
 
 // indicates state is failure
@@ -301,28 +301,8 @@ func (h *Health) safeUpdateState(stateEntry *State) {
 	h.statesLock.Lock()
 	defer h.statesLock.Unlock()
 
-	// track failures if there is a status listener
-	if h.StatusListener != nil {
-		// get the previous state
-		prevState := h.states[stateEntry.Name]
-
-		// state is failure
-		if stateEntry.isFailure() {
-			if !prevState.isFailure() {
-				// new failure: previous state was ok
-				go h.StatusListener.HealthCheckFailed(stateEntry.Name)
-				stateEntry.timeOfFirstFailure = time.Now()
-			} else {
-				// carry the time of first failure from the previous state
-				stateEntry.timeOfFirstFailure = prevState.timeOfFirstFailure
-			}
-			stateEntry.numContiguousFailures = prevState.numContiguousFailures + 1
-		} else if prevState.isFailure() {
-			// recovery, previous state was failure
-			failureSeconds := time.Now().Sub(prevState.timeOfFirstFailure).Seconds()
-			go h.StatusListener.HealthCheckRecovered(stateEntry.Name, prevState.numContiguousFailures, failureSeconds)
-		}
-	}
+	// dispatch any status listeners
+	h.handleStatusListener(stateEntry)
 
 	h.states[stateEntry.Name] = *stateEntry
 }
@@ -332,4 +312,31 @@ func (h *Health) safeGetStates() map[string]State {
 	h.statesLock.Lock()
 	defer h.statesLock.Unlock()
 	return h.states
+}
+
+// if a status listener is attached
+func (h *Health) handleStatusListener(stateEntry *State) {
+	if h.StatusListener == nil {
+		return
+	}
+
+	// get the previous state
+	prevState := h.states[stateEntry.Name]
+
+	// state is failure
+	if stateEntry.isFailure() {
+		if !prevState.isFailure() {
+			// new failure: previous state was ok
+			go h.StatusListener.HealthCheckFailed(stateEntry)
+			stateEntry.timeOfFirstFailure = time.Now()
+		} else {
+			// carry the time of first failure from the previous state
+			stateEntry.timeOfFirstFailure = prevState.timeOfFirstFailure
+		}
+		stateEntry.contiguousFailures = prevState.contiguousFailures + 1
+	} else if prevState.isFailure() {
+		// recovery, previous state was failure
+		failureSeconds := time.Now().Sub(prevState.timeOfFirstFailure).Seconds()
+		go h.StatusListener.HealthCheckRecovered(stateEntry, prevState.contiguousFailures, failureSeconds)
+	}
 }

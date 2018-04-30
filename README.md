@@ -125,6 +125,7 @@ output would look something like this:
 
 ## Additional Documentation
 * [Examples](/examples)
+  * [Status Listeners](/examples/status-listener)
 * [Checkers](/checkers)
 * [Logging](/loggers)
 
