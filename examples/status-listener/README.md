@@ -15,5 +15,5 @@ The function `HealthCheckFailed` is triggered when the health check fails for th
 
 ### To run example
 
-Within the project folder `/examples/status_listener`, run `go run dependency.go` on one terminal window, then `go run service.go` in another.  You will observe the requests to the dependency, as well as the triggering and recovery of failed health checks.
+Within the project folder `/examples/status_listener/dependency`, run `go run dependency.go` on one terminal window, then from within `/examples/status_listener/service`, run `go run service.go` in another.  You will observe the requests to the dependency, as well as the triggering and recovery of failed health checks.
 
