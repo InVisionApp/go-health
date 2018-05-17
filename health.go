@@ -104,8 +104,8 @@ type State struct {
 	// CheckTime is the time of the last health check
 	CheckTime time.Time `json:"check_time"`
 
-	contiguousFailures int64     // the number of failures that occurred in a row
-	timeOfFirstFailure time.Time // the time of the initial transitional failure for any given health check
+	ContiguousFailures int64     `json:"num_failures"`     // the number of failures that occurred in a row
+	TimeOfFirstFailure time.Time `json:"first_failure_at"` // the time of the initial transitional failure for any given health check
 }
 
 // indicates state is failure
@@ -297,12 +297,12 @@ func (h *Health) safeResetStates() {
 
 // updates the check state in a concurrency-safe manner
 func (h *Health) safeUpdateState(stateEntry *State) {
+	// dispatch any status listeners
+	h.handleStatusListener(stateEntry)
+
 	// update states here
 	h.statesLock.Lock()
 	defer h.statesLock.Unlock()
-
-	// dispatch any status listeners
-	h.handleStatusListener(stateEntry)
 
 	h.states[stateEntry.Name] = *stateEntry
 }
@@ -316,27 +316,31 @@ func (h *Health) safeGetStates() map[string]State {
 
 // if a status listener is attached
 func (h *Health) handleStatusListener(stateEntry *State) {
-	if h.StatusListener == nil {
-		return
-	}
-
 	// get the previous state
+	h.statesLock.Lock()
 	prevState := h.states[stateEntry.Name]
+	h.statesLock.Unlock()
 
 	// state is failure
 	if stateEntry.isFailure() {
 		if !prevState.isFailure() {
 			// new failure: previous state was ok
-			go h.StatusListener.HealthCheckFailed(stateEntry)
-			stateEntry.timeOfFirstFailure = time.Now()
+			if h.StatusListener != nil {
+				go h.StatusListener.HealthCheckFailed(stateEntry)
+			}
+
+			stateEntry.TimeOfFirstFailure = time.Now()
 		} else {
 			// carry the time of first failure from the previous state
-			stateEntry.timeOfFirstFailure = prevState.timeOfFirstFailure
+			stateEntry.TimeOfFirstFailure = prevState.TimeOfFirstFailure
 		}
-		stateEntry.contiguousFailures = prevState.contiguousFailures + 1
+		stateEntry.ContiguousFailures = prevState.ContiguousFailures + 1
 	} else if prevState.isFailure() {
 		// recovery, previous state was failure
-		failureSeconds := time.Now().Sub(prevState.timeOfFirstFailure).Seconds()
-		go h.StatusListener.HealthCheckRecovered(stateEntry, prevState.contiguousFailures, failureSeconds)
+		failureSeconds := time.Now().Sub(prevState.TimeOfFirstFailure).Seconds()
+
+		if h.StatusListener != nil {
+			go h.StatusListener.HealthCheckRecovered(stateEntry, prevState.ContiguousFailures, failureSeconds)
+		}
 	}
 }
