@@ -7,7 +7,6 @@ package health
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -42,7 +41,7 @@ type IHealth interface {
 	Failed() bool
 }
 
-// The ICheckable interface is implemented by a number of bundled checkers such
+// ICheckable is an interface implemented by a number of bundled checkers such
 // as "MySQLChecker", "RedisChecker" and "HTTPChecker". By implementing the
 // interface, you can feed your own custom checkers into the health library.
 type ICheckable interface {
@@ -52,30 +51,77 @@ type ICheckable interface {
 	Status() (interface{}, error)
 }
 
-// The Config struct is used for defining and configuring checks.
-type Config struct {
-	Name     string
-	Checker  ICheckable
-	Interval time.Duration
-	Fatal    bool
+// IStatusListener is an interface that handles health check failures and
+// recoveries, primarily for stats recording purposes
+type IStatusListener interface {
+	// HealthCheckFailed is a function that handles the failure of a health
+	// check event. This function is called when a health check state
+	// transitions from passing to failing.
+	// 	* entry - The recorded state of the health check that triggered the failure
+	HealthCheckFailed(entry *State)
+
+	// HealthCheckRecovered is a function that handles the recovery of a failed
+	// health check.
+	// 	* entry - The recorded state of the health check that triggered the recovery
+	// 	* recordedFailures - the total failed health checks that lapsed
+	// 	  between the failure and recovery
+	//	* failureDurationSeconds - the lapsed time, in seconds, of the recovered failure
+	HealthCheckRecovered(entry *State, recordedFailures int64, failureDurationSeconds float64)
 }
 
-// The State struct contains the results of the latest run of a particular check.
+// Config is a struct used for defining and configuring checks.
+type Config struct {
+	// Name of the check
+	Name string
+
+	// Checker instance used to perform health check
+	Checker ICheckable
+
+	// Interval between health checks
+	Interval time.Duration
+
+	// Fatal marks a failing health check so that the
+	// entire health check request fails with a 500 error
+	Fatal bool
+}
+
+// State is a struct that contains the results of the latest
+// run of a particular check.
 type State struct {
-	Name      string      `json:"name"`
-	Status    string      `json:"status"`
-	Err       string      `json:"error,omitempty"`
-	Details   interface{} `json:"details,omitempty"` // contains JSON message (that can be marshaled)
-	CheckTime time.Time   `json:"check_time"`
+	// Name of the health check
+	Name string `json:"name"`
+
+	// Status of the health check state ("ok" or "failed")
+	Status string `json:"status"`
+
+	// Err is the error returned from a failed health check
+	Err string `json:"error,omitempty"`
+
+	// Details contains more contextual detail about a
+	// failing health check.
+	Details interface{} `json:"details,omitempty"` // contains JSON message (that can be marshaled)
+
+	// CheckTime is the time of the last health check
+	CheckTime time.Time `json:"check_time"`
+
+	ContiguousFailures int64     `json:"num_failures"`     // the number of failures that occurred in a row
+	TimeOfFirstFailure time.Time `json:"first_failure_at"` // the time of the initial transitional failure for any given health check
+}
+
+// indicates state is failure
+func (s *State) isFailure() bool {
+	return s.Status == "failed"
 }
 
 // Health contains internal go-health internal structures.
 type Health struct {
 	Logger log.Logger
 
-	active *sBool // indicates whether the healthcheck is actively running
-	failed *sBool // indicates whether the healthcheck has encountered a fatal error in one of its deps
+	// StatusListener will report failures and recoveries
+	StatusListener IStatusListener
 
+	active     *sBool // indicates whether the healthcheck is actively running
+	failed     *sBool // indicates whether the healthcheck has encountered a fatal error in one of its deps
 	configs    []*Config
 	states     map[string]State
 	statesLock sync.Mutex
@@ -139,9 +185,7 @@ func (h *Health) Start() error {
 		ticker := time.NewTicker(c.Interval)
 		stop := make(chan struct{})
 
-		if err := h.startRunner(c, ticker, stop); err != nil {
-			return fmt.Errorf("Unable to create healthcheck runner '%v': %v", c.Name, err)
-		}
+		h.startRunner(c, ticker, stop)
 
 		h.runners[c.Name] = stop
 	}
@@ -191,7 +235,7 @@ func (h *Health) Failed() bool {
 	return h.failed.val()
 }
 
-func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struct{}) error {
+func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struct{}) {
 
 	// function to execute and collect check data
 	checkFunc := func() {
@@ -242,25 +286,61 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struc
 
 		h.Logger.WithFields(log.Fields{"name": cfg.Name}).Debug("Checker exiting")
 	}()
-
-	return nil
 }
 
+// resets the states in a concurrency-safe manner
 func (h *Health) safeResetStates() {
 	h.statesLock.Lock()
 	defer h.statesLock.Unlock()
 	h.states = make(map[string]State, 0)
 }
 
+// updates the check state in a concurrency-safe manner
 func (h *Health) safeUpdateState(stateEntry *State) {
+	// dispatch any status listeners
+	h.handleStatusListener(stateEntry)
+
 	// update states here
 	h.statesLock.Lock()
 	defer h.statesLock.Unlock()
+
 	h.states[stateEntry.Name] = *stateEntry
 }
 
+// get all states in a concurrency-safe manner
 func (h *Health) safeGetStates() map[string]State {
 	h.statesLock.Lock()
 	defer h.statesLock.Unlock()
 	return h.states
+}
+
+// if a status listener is attached
+func (h *Health) handleStatusListener(stateEntry *State) {
+	// get the previous state
+	h.statesLock.Lock()
+	prevState := h.states[stateEntry.Name]
+	h.statesLock.Unlock()
+
+	// state is failure
+	if stateEntry.isFailure() {
+		if !prevState.isFailure() {
+			// new failure: previous state was ok
+			if h.StatusListener != nil {
+				go h.StatusListener.HealthCheckFailed(stateEntry)
+			}
+
+			stateEntry.TimeOfFirstFailure = time.Now()
+		} else {
+			// carry the time of first failure from the previous state
+			stateEntry.TimeOfFirstFailure = prevState.TimeOfFirstFailure
+		}
+		stateEntry.ContiguousFailures = prevState.ContiguousFailures + 1
+	} else if prevState.isFailure() {
+		// recovery, previous state was failure
+		failureSeconds := time.Now().Sub(prevState.TimeOfFirstFailure).Seconds()
+
+		if h.StatusListener != nil {
+			go h.StatusListener.HealthCheckRecovered(stateEntry, prevState.ContiguousFailures, failureSeconds)
+		}
+	}
 }
