@@ -77,12 +77,11 @@ func TestAddChecks(t *testing.T) {
 		Expect(err).To(Equal(ErrNoAddCfgWhenActive))
 	})
 
-	t.Run("Should error if passed in empty config slice", func(t *testing.T) {
+	t.Run("Should not error if passed in empty config slice", func(t *testing.T) {
 		h := setupNewTestHealth()
 		err := h.AddChecks([]*Config{})
 
-		Expect(err).To(HaveOccurred())
-		Expect(err).To(Equal(ErrEmptyConfigs))
+		Expect(err).ToNot(HaveOccurred())
 	})
 }
 
