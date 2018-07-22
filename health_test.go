@@ -419,6 +419,17 @@ func TestStartRunner(t *testing.T) {
 		Expect(h.failed.val()).To(BeFalse())
 	})
 
+	t.Run("Happy path - no checkers is noop", func(t *testing.T) {
+		h := New()
+
+		Expect(h).ToNot(BeNil())
+
+		err := h.Start()
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(h.active.val()).To(BeFalse())
+	})
+
 	t.Run("Happy path - 1 checker fails (non-fatal)", func(t *testing.T) {
 		checker1 := &fakes.FakeICheckable{}
 		checker2 := &fakes.FakeICheckable{}
