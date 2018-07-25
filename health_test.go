@@ -77,12 +77,11 @@ func TestAddChecks(t *testing.T) {
 		Expect(err).To(Equal(ErrNoAddCfgWhenActive))
 	})
 
-	t.Run("Should error if passed in empty config slice", func(t *testing.T) {
+	t.Run("Should not error if passed in empty config slice", func(t *testing.T) {
 		h := setupNewTestHealth()
 		err := h.AddChecks([]*Config{})
 
-		Expect(err).To(HaveOccurred())
-		Expect(err).To(Equal(ErrEmptyConfigs))
+		Expect(err).ToNot(HaveOccurred())
 	})
 }
 
@@ -418,6 +417,17 @@ func TestStartRunner(t *testing.T) {
 
 		// Since nothing has failed, healthcheck should _not_ be in failed state
 		Expect(h.failed.val()).To(BeFalse())
+	})
+
+	t.Run("Happy path - no checkers is noop", func(t *testing.T) {
+		h := New()
+
+		Expect(h).ToNot(BeNil())
+
+		err := h.Start()
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(h.active.val()).To(BeFalse())
 	})
 
 	t.Run("Happy path - 1 checker fails (non-fatal)", func(t *testing.T) {

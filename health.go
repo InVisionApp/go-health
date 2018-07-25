@@ -153,10 +153,6 @@ func (h *Health) AddChecks(cfgs []*Config) error {
 		return ErrNoAddCfgWhenActive
 	}
 
-	if len(cfgs) == 0 {
-		return ErrEmptyConfigs
-	}
-
 	h.configs = append(h.configs, cfgs...)
 
 	return nil
@@ -178,6 +174,11 @@ func (h *Health) AddCheck(cfg *Config) error {
 func (h *Health) Start() error {
 	if h.active.val() {
 		return ErrAlreadyRunning
+	}
+
+	// if there are no check configs, this is a noop
+	if len(h.configs) < 1 {
+		return nil
 	}
 
 	for _, c := range h.configs {
