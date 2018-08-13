@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"fmt"
 	. "github.com/onsi/gomega"
 )
 
@@ -254,6 +255,50 @@ func TestHTTPStatus(t *testing.T) {
 	})
 
 	t.Run("Should return error if response body is not readable", func(t *testing.T) {
+		httpClient := &http.Client{
+			Transport: newTransport(),
+		}
 
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("foo"))
+		}))
+		defer ts.Close()
+
+		testURL, err := url.Parse(ts.URL)
+		Expect(err).ToNot(HaveOccurred())
+
+		cfg := &HTTPConfig{
+			URL:    testURL,
+			Expect: "foo",
+			Client: httpClient,
+		}
+
+		checker, err := NewHTTP(cfg)
+		Expect(err).ToNot(HaveOccurred())
+
+		data, err := checker.Status()
+
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Unable to read response body to perform content expectancy check"))
+		Expect(data).To(BeNil())
 	})
 }
+
+type CustomTransport struct{}
+
+func newTransport() *CustomTransport {
+	return &CustomTransport{}
+}
+
+func (c *CustomTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       &mockReader{},
+	}, nil
+}
+
+type mockReader struct{}
+
+func (m *mockReader) Read(p []byte) (n int, err error) { return 0, fmt.Errorf("foo") }
+func (m *mockReader) Close() error                     { return nil }

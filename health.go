@@ -312,7 +312,15 @@ func (h *Health) safeUpdateState(stateEntry *State) {
 func (h *Health) safeGetStates() map[string]State {
 	h.statesLock.Lock()
 	defer h.statesLock.Unlock()
-	return h.states
+
+	// deep copy h.states to avoid race
+	statesCopy := make(map[string]State, 0)
+
+	for k, v := range h.states {
+		statesCopy[k] = v
+	}
+
+	return statesCopy
 }
 
 // if a status listener is attached

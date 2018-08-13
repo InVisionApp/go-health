@@ -376,7 +376,6 @@ func TestStop(t *testing.T) {
 			// 3rd and 4th message should indicate goroutine exit
 			msgs := testLogger.Bytes()
 			Expect(msgs).To(ContainSubstring("Stopping checker name=" + cfg.Name))
-
 			Expect(msgs).To(ContainSubstring("Checker exiting name=" + cfg.Name))
 		}
 

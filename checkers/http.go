@@ -68,6 +68,7 @@ func (h *HTTP) Status() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	// Check if StatusCode matches
 	if resp.StatusCode != h.Config.StatusCode {
@@ -81,7 +82,6 @@ func (h *HTTP) Status() (interface{}, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Unable to read response body to perform content expectancy check: %v", err)
 		}
-		defer resp.Body.Close()
 
 		if !strings.Contains(string(data), h.Config.Expect) {
 			return nil, fmt.Errorf("Received response body '%v' does not contain expected content '%v'",
