@@ -1,4 +1,4 @@
-package checkers
+package checkers_test
 
 import (
 	"errors"
@@ -7,45 +7,45 @@ import (
 	"testing"
 	"time"
 
+	"github.com/InVisionApp/go-health/checkers"
+	"github.com/InVisionApp/go-health/fakes"
 	"github.com/InVisionApp/go-health/fakes/netfakes"
-	"github.com/InVisionApp/platform-dashboard-web/datadog/datadogfakes"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestReachableSuccess(t *testing.T) {
 	assert := assert.New(t)
-	dd := &datadogfakes.FakeIStatsDClient{}
+	dd := &fakes.FakeReachableDatadogIncrementer{}
 	u, _ := url.Parse("http://example.com")
-	cfg := &ReachableConfig{
-		URL:           u,
+	cfg := &checkers.ReachableConfig{
+		URL: u,
+		Dialer: func(network, address string, timeout time.Duration) (net.Conn, error) {
+			return nil, nil
+		},
 		DatadogClient: dd,
 		DatadogTags: []string{
 			"dependency:test-service",
 		},
 	}
-	c, err := NewReachableChecker(cfg)
+	c, err := checkers.NewReachableChecker(cfg)
 	assert.NoError(err)
 	assert.NotNil(c)
-	c.dialer = func(network, address string, timeout time.Duration) (net.Conn, error) {
-		return nil, nil
-	}
 
 	_, err = c.Status()
 	assert.NoError(err)
 	assert.Equal(0, dd.IncrCallCount())
-	assert.Equal("dependency:test-service", c.tags[0])
 }
 
 func TestReachableError(t *testing.T) {
 	assert := assert.New(t)
 	u, _ := url.Parse("http://example.com")
-	cfg := &ReachableConfig{
+	cfg := &checkers.ReachableConfig{
 		URL: u,
 		Dialer: func(network, address string, timeout time.Duration) (net.Conn, error) {
 			return nil, errors.New("Failed check")
 		},
 	}
-	c, err := NewReachableChecker(cfg)
+	c, err := checkers.NewReachableChecker(cfg)
 	assert.NoError(err)
 	assert.NotNil(c)
 
@@ -57,7 +57,7 @@ func TestReachableConnError(t *testing.T) {
 	assert := assert.New(t)
 	u, _ := url.Parse("http://example.com")
 	expectedErr := errors.New("Failed close")
-	cfg := &ReachableConfig{
+	cfg := &checkers.ReachableConfig{
 		URL: u,
 		Dialer: func(network, address string, timeout time.Duration) (net.Conn, error) {
 			conn := &netfakes.FakeConn{}
@@ -65,7 +65,7 @@ func TestReachableConnError(t *testing.T) {
 			return conn, nil
 		},
 	}
-	c, err := NewReachableChecker(cfg)
+	c, err := checkers.NewReachableChecker(cfg)
 	assert.NoError(err)
 	assert.NotNil(c)
 
@@ -75,12 +75,12 @@ func TestReachableConnError(t *testing.T) {
 
 func TestReachableErrorWithDatadog(t *testing.T) {
 	assert := assert.New(t)
-	dd := &datadogfakes.FakeIStatsDClient{}
+	dd := &fakes.FakeReachableDatadogIncrementer{}
 	ddTags := []string{
 		"dependency:test-service",
 	}
 	u, _ := url.Parse("http://example.com")
-	cfg := &ReachableConfig{
+	cfg := &checkers.ReachableConfig{
 		URL: u,
 		Dialer: func(network, address string, timeout time.Duration) (net.Conn, error) {
 			return nil, errors.New("Failed check")
@@ -88,7 +88,7 @@ func TestReachableErrorWithDatadog(t *testing.T) {
 		DatadogClient: dd,
 		DatadogTags:   ddTags,
 	}
-	c, err := NewReachableChecker(cfg)
+	c, err := checkers.NewReachableChecker(cfg)
 	assert.NoError(err)
 	assert.NotNil(c)
 
@@ -96,7 +96,7 @@ func TestReachableErrorWithDatadog(t *testing.T) {
 	assert.Error(err)
 	assert.Equal(1, dd.IncrCallCount())
 	name, tags, num := dd.IncrArgsForCall(0)
-	assert.Equal(ReachableDDHealthErrors, name)
+	assert.Equal(checkers.ReachableDDHealthErrors, name)
 	assert.Equal(ddTags, tags)
 	assert.Equal(1.0, num)
 }

@@ -4,8 +4,6 @@ import (
 	"net"
 	"net/url"
 	"time"
-
-	"github.com/InVisionApp/platform-dashboard-web/datadog"
 )
 
 const (
@@ -23,6 +21,11 @@ var (
 // ReachableDialer is the signature for a function that checks if an address is reachable
 type ReachableDialer func(network, address string, timeout time.Duration) (net.Conn, error)
 
+// ReachableDatadogIncrementer is any datadog client that has the Incr method for tracking metrics
+type ReachableDatadogIncrementer interface {
+	Incr(name string, tags []string, rate float64) error
+}
+
 // ReachableConfig is used for configuring an HTTP check. The only required field is `URL`.
 //
 // "Dialer" is optional and defaults to using net.DialTimeout.
@@ -36,12 +39,12 @@ type ReachableDialer func(network, address string, timeout time.Duration) (net.C
 //
 // "DatadogTags" is optional; defines the tags that are passed to datadog when there is a failure
 type ReachableConfig struct {
-	URL           *url.URL              // Required
-	Dialer        ReachableDialer       // Optional (default net.DialTimeout)
-	Timeout       time.Duration         // Optional (default 3s)
-	DatadogClient datadog.IStatsDClient // Optional
-	DatadogName   string                // Optional
-	DatadogTags   []string              // Optional
+	URL           *url.URL                    // Required
+	Dialer        ReachableDialer             // Optional (default net.DialTimeout)
+	Timeout       time.Duration               // Optional (default 3s)
+	DatadogClient ReachableDatadogIncrementer // Optional
+	DatadogName   string                      // Optional
+	DatadogTags   []string                    // Optional
 }
 
 // ReachableChecker checks that URL responds to a TCP request
@@ -49,7 +52,7 @@ type ReachableChecker struct {
 	dialer  ReachableDialer
 	timeout time.Duration
 	url     *url.URL
-	datadog datadog.IStatsDClient
+	datadog ReachableDatadogIncrementer
 	tags    []string
 }
 
