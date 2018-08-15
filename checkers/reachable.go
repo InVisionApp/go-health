@@ -11,6 +11,8 @@ const (
 	ReachableDDHealthErrors = "health.errors"
 	// ReachableDefaultPort is the default port used if no port is defined in a reachable checker
 	ReachableDefaultPort = "80"
+	// ReachableDefaultNetwork is the default network used in the reachable checker
+	ReachableDefaultNetwork = "tcp"
 )
 
 var (
@@ -32,18 +34,20 @@ type ReachableDatadogIncrementer interface {
 //
 // "Timeout" is optional and defaults to "3s".
 //
+// "Network" is optional and defaults to "tcp"; it should be one of "tcp",
+// "tcp4", "tcp6", "unix", "unixpacket", "udp", "udp4", "udp6", "unixgram" or an
+// IP transport. The IP transports are "ip", "ip4", or "ip6" followed by a colon
+// and a literal protocol number or a protocol name, as in "ip:1" or "ip:icmp".
+//
 // "DatadogClient" is optional; if defined metrics will be sent via statsd.
-//
-//
-// "DatadogName" is optional; defines the name of the metric to increment and defaults to "health.errors"
 //
 // "DatadogTags" is optional; defines the tags that are passed to datadog when there is a failure
 type ReachableConfig struct {
 	URL           *url.URL                    // Required
 	Dialer        ReachableDialer             // Optional (default net.DialTimeout)
 	Timeout       time.Duration               // Optional (default 3s)
+	Network       string                      // Optional (default tcp)
 	DatadogClient ReachableDatadogIncrementer // Optional
-	DatadogName   string                      // Optional
 	DatadogTags   []string                    // Optional
 }
 
@@ -51,6 +55,7 @@ type ReachableConfig struct {
 type ReachableChecker struct {
 	dialer  ReachableDialer
 	timeout time.Duration
+	network string
 	url     *url.URL
 	datadog ReachableDatadogIncrementer
 	tags    []string
@@ -59,16 +64,21 @@ type ReachableChecker struct {
 // NewReachableChecker creates a new reachable health checker
 func NewReachableChecker(cfg *ReachableConfig) (*ReachableChecker, error) {
 	t := ReachableDefaultTimeout
-	if cfg.Timeout == 0 {
+	if cfg.Timeout != 0 {
 		t = cfg.Timeout
 	}
 	d := net.DialTimeout
 	if cfg.Dialer != nil {
 		d = cfg.Dialer
 	}
+	n := ReachableDefaultNetwork
+	if cfg.Network != "" {
+		n = cfg.Network
+	}
 	r := &ReachableChecker{
 		dialer:  d,
 		timeout: t,
+		network: n,
 		url:     cfg.URL,
 		datadog: cfg.DatadogClient,
 		tags:    cfg.DatadogTags,
@@ -85,7 +95,7 @@ func (r *ReachableChecker) Status() (interface{}, error) {
 		port = ReachableDefaultPort
 	}
 
-	conn, err := r.dialer("tcp", r.url.Hostname()+":"+port, r.timeout)
+	conn, err := r.dialer(r.network, r.url.Hostname()+":"+port, r.timeout)
 	if err != nil {
 		return r.fail(err)
 	}

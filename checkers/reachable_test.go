@@ -13,13 +13,46 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestReachableSuccess(t *testing.T) {
+func TestReachableSuccessUsingDefaults(t *testing.T) {
 	assert := assert.New(t)
 	dd := &fakes.FakeReachableDatadogIncrementer{}
 	u, _ := url.Parse("http://example.com")
 	cfg := &checkers.ReachableConfig{
 		URL: u,
 		Dialer: func(network, address string, timeout time.Duration) (net.Conn, error) {
+			assert.Equal(checkers.ReachableDefaultNetwork, network)
+			assert.Equal(u.Hostname()+":"+checkers.ReachableDefaultPort, address)
+			assert.Equal(checkers.ReachableDefaultTimeout, timeout)
+			return nil, nil
+		},
+		DatadogClient: dd,
+		DatadogTags: []string{
+			"dependency:test-service",
+		},
+	}
+	c, err := checkers.NewReachableChecker(cfg)
+	assert.NoError(err)
+	assert.NotNil(c)
+
+	_, err = c.Status()
+	assert.NoError(err)
+	assert.Equal(0, dd.IncrCallCount())
+}
+
+func TestReachableSuccess(t *testing.T) {
+	assert := assert.New(t)
+	dd := &fakes.FakeReachableDatadogIncrementer{}
+	u, _ := url.Parse("http://example.com:8080")
+	n := "udp"
+	to := time.Duration(10) * time.Second
+	cfg := &checkers.ReachableConfig{
+		URL:     u,
+		Network: n,
+		Timeout: to,
+		Dialer: func(network, address string, timeout time.Duration) (net.Conn, error) {
+			assert.Equal(n, network)
+			assert.Equal(u.Hostname()+":8080", address)
+			assert.Equal(to, timeout)
 			return nil, nil
 		},
 		DatadogClient: dd,
