@@ -208,7 +208,7 @@ Planned, but PR's welcome!
 
 ### Reachable
 
-The reachable checker is a generic TCP checker. Use it to verify that a configured address can be contacted via a request over TCP. This is useful if you do not care about a response from the target and simply want to know if the URL is reachable.
+The reachable checker is a generic TCP/UDP checker. Use it to verify that a configured address can be contacted via a request over TCP or UDP. This is useful if you do not care about a response from the target and simply want to know if the URL is reachable.
 
-The only **required** attribute is `HTTPConfig.URL` (`*url.URL`).
+The only **required** attribute is `ReachableConfig.URL` (`*url.URL`).
 Refer to the source code for all available attributes on the struct.
