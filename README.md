@@ -127,7 +127,6 @@ output would look something like this:
 * [Examples](/examples)
   * [Status Listeners](/examples/status-listener)
 * [Checkers](/checkers)
-* [Logging](/loggers)
 
 ## Contributing
 All PR's are welcome, as long as they are well tested. Follow the typical fork->branch->pr flow.
