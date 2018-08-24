@@ -89,7 +89,7 @@ h.AddChecks([]*health.Config{
         Interval: time.Duration(2) * time.Second,
         Fatal:    true,
     },
-)
+})
 ```
 
 3. Start the healthcheck
