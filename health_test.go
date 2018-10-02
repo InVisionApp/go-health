@@ -433,7 +433,7 @@ func TestStartRunner(t *testing.T) {
 		}
 
 		// Since nothing has failed, healthcheck should _not_ be in failed state
-		Expect(h.failed.val()).To(BeFalse())
+		Expect(h.Failed()).To(BeFalse())
 	})
 
 	t.Run("Happy path - no checkers is noop", func(t *testing.T) {
@@ -488,7 +488,7 @@ func TestStartRunner(t *testing.T) {
 		Expect(h.states[cfgs[1].Name].Err).To(Equal(checker2Error.Error()))
 
 		// Since nothing has failed, healthcheck should _not_ be in failed state
-		Expect(h.failed.val()).To(BeFalse())
+		Expect(h.Failed()).To(BeFalse())
 	})
 
 	t.Run("Happy path - 1 checker fails (fatal)", func(t *testing.T) {
@@ -532,7 +532,7 @@ func TestStartRunner(t *testing.T) {
 		Expect(h.states[cfgs[1].Name].Err).To(Equal(checker2Err.Error()))
 
 		// Since second checker has failed fatally, global healthcheck state should be failed as well
-		Expect(h.failed.val()).To(BeTrue())
+		Expect(h.Failed()).To(BeTrue())
 	})
 }
 

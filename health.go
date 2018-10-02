@@ -230,13 +230,18 @@ func (h *Health) Stop() error {
 //
 // The map key is the name of the check.
 func (h *Health) State() (map[string]State, bool, error) {
-	return h.safeGetStates(), h.failed.val(), nil
+	return h.safeGetStates(), h.Failed(), nil
 }
 
 // Failed will return the basic state of overall health. This should be used when
 // details about the failure are not needed
 func (h *Health) Failed() bool {
-	return h.failed.val()
+	for _, val := range h.safeGetStates() {
+		if val.Fatal && val.isFailure() {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struct{}) {
