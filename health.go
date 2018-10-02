@@ -97,6 +97,9 @@ type State struct {
 	// Err is the error returned from a failed health check
 	Err string `json:"error,omitempty"`
 
+	// Fatal shows if the check will affect global result
+	Fatal bool `json:"fatal,omitempty"`
+
 	// Details contains more contextual detail about a
 	// failing health check.
 	Details interface{} `json:"details,omitempty"` // contains JSON message (that can be marshaled)
@@ -247,6 +250,7 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struc
 			Status:    "ok",
 			Details:   data,
 			CheckTime: time.Now(),
+			Fatal:     cfg.Fatal,
 		}
 
 		if err != nil {
