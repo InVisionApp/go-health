@@ -169,8 +169,17 @@ func TestFailed(t *testing.T) {
 		h := setupNewTestHealth()
 		checker1 := &fakes.FakeICheckable{}
 		checker1.StatusReturns(nil, fmt.Errorf("things broke"))
+		checker2 := &fakes.FakeICheckable{}
+		checker2.StatusReturns(nil, nil)
 
 		cfgs := []*Config{
+			// order *is* relevant, failing check should be first
+			{
+				Name:     "bar",
+				Checker:  checker2,
+				Interval: testCheckInterval,
+				Fatal:    true,
+			},
 			{
 				Name:     "foo",
 				Checker:  checker1,
@@ -235,8 +244,17 @@ func TestState(t *testing.T) {
 		h := setupNewTestHealth()
 		checker1 := &fakes.FakeICheckable{}
 		checker1.StatusReturns(nil, fmt.Errorf("things broke"))
+		checker2 := &fakes.FakeICheckable{}
+		checker2.StatusReturns(nil, nil)
 
 		cfgs := []*Config{
+			// order *is* relevant, failing check should be first
+			{
+				Name:     "bar",
+				Checker:  checker2,
+				Interval: testCheckInterval,
+				Fatal:    true,
+			},
 			{
 				Name:     "foo",
 				Checker:  checker1,
