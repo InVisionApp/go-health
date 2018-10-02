@@ -124,7 +124,6 @@ type Health struct {
 	StatusListener IStatusListener
 
 	active     *sBool // indicates whether the healthcheck is actively running
-	failed     *sBool // indicates whether the healthcheck has encountered a fatal error in one of its deps
 	configs    []*Config
 	states     map[string]State
 	statesLock sync.Mutex
@@ -139,7 +138,6 @@ func New() *Health {
 		states:     make(map[string]State, 0),
 		runners:    make(map[string]chan struct{}, 0),
 		active:     newBool(),
-		failed:     newBool(), // init as false
 		statesLock: sync.Mutex{},
 	}
 }
@@ -267,11 +265,6 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struc
 
 			stateEntry.Err = err.Error()
 			stateEntry.Status = "failed"
-		}
-
-		// Toggle the global failed state if check is configured as fatal
-		if cfg.Fatal {
-			h.failed.set(err != nil)
 		}
 
 		h.safeUpdateState(stateEntry)
