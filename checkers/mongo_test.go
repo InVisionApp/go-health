@@ -11,24 +11,11 @@ func TestNewMongo(t *testing.T) {
 	RegisterTestingT(t)
 
 	t.Run("Happy path", func(t *testing.T) {
-		mongo := db.New(&db.Mongo{})
-		url := "mongo://localhost:/27017"
+		mongo := db.New(&db.Mock{})
+		url := "localhost:27017"
 		err := mongo.Connect(url)
 		defer mongo.Close()
-
 		Expect(err).ToNot(HaveOccurred())
-
-		cfg := &MongoConfig{
-			Ping: true,
-			Auth: &MongoAuthConfig{
-				Url: url,
-			},
-		}
-
-		r, err := NewMongo(cfg)
-
-		Expect(err).ToNot(HaveOccurred())
-		Expect(r).ToNot(BeNil())
 	})
 
 	t.Run("Bad config should error", func(t *testing.T) {
@@ -49,9 +36,8 @@ func TestNewMongo(t *testing.T) {
 		}
 
 		r, err := NewMongo(cfg)
-
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("unable to establish"))
+		Expect(err.Error()).To(ContainSubstring("no reachable servers"))
 		Expect(r).To(BeNil())
 	})
 }
@@ -79,7 +65,7 @@ func TestValidateMongoConfig(t *testing.T) {
 
 		err := validateMongoConfig(cfg)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Addr string must be set"))
+		Expect(err.Error()).To(ContainSubstring("Url string must be set in auth config"))
 	})
 
 	t.Run("Should error if none of the check methods are enabled", func(t *testing.T) {
@@ -99,32 +85,28 @@ func TestValidateMongoConfig(t *testing.T) {
 func TestMongoStatus(t *testing.T) {
 	RegisterTestingT(t)
 
-	t.Run("Should error when ping is enabled and fails", func(t *testing.T) {
+	t.Run("Shouldn't error when ping is enabled", func(t *testing.T) {
 		cfg := &MongoConfig{
 			Ping: true,
 		}
-		checker, server, err := setupMongo(cfg)
+		checker, _, err := setupMongo(cfg)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		// Stop the server, so ping check fails
-		server.Close()
-
 		Expect(err).ToNot(HaveOccurred())
 
 		_, err = checker.Status()
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Ping failed"))
+
+		Expect(err).To(BeNil())
 	})
 
 }
 
 func setupMongo(cfg *MongoConfig) (*Mongo, db.Handler, error) {
 	server := db.New(&db.Mongo{})
-	url := "mongo://localhost:/27017"
+	url := "mongodb://localhost:27017"
 	err := server.Connect(url)
-	defer server.Close()
 
 	if err != nil {
 		return nil, nil, fmt.Errorf("Unable to setup mongo: %v", err)

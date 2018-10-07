@@ -3,7 +3,6 @@ package checkers
 import (
 	"fmt"
 	"github.com/globalsign/mgo"
-	"log"
 )
 
 type MongoConfig struct {
@@ -31,7 +30,7 @@ func NewMongo(cfg *MongoConfig) (*Mongo, error) {
 
 	session, err := mgo.Dial(cfg.Auth.Url)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	if err := session.Ping(); err != nil {
@@ -85,6 +84,10 @@ func validateMongoConfig(cfg *MongoConfig) error {
 
 	if cfg.Auth.Url == "" {
 		return fmt.Errorf("Url string must be set in auth config")
+	}
+
+	if !cfg.Ping && cfg.Collection == "" {
+		return fmt.Errorf("At minimum, either cfg.Ping or cfg.Collection")
 	}
 
 	if _, err := mgo.ParseURL(cfg.Auth.Url); err != nil {
