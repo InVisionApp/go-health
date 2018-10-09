@@ -5,6 +5,16 @@ import (
 	"github.com/globalsign/mgo"
 )
 
+// MongoConfig is used for configuring the go-mongo check.
+//
+// "Auth" is _required_; redis connection/auth config.
+//
+// "Collection" is optional; method checks if collection exist
+//
+// "Ping" is optional; Ping runs a trivial ping command just to get in touch with the server.
+//
+// Note: At least _one_ check method must be set/enabled; you can also enable
+// _all_ of the check methods (ie. perform a ping, or check particular collection for existense).
 type MongoConfig struct {
 	Auth       *MongoAuthConfig
 	Collection string
@@ -12,6 +22,9 @@ type MongoConfig struct {
 	Ping       bool
 }
 
+// MongoAuthConfig, used to setup connection params for go-mongo check
+// Url format is localhost:27017 or mongo://localhost:27017
+// Credential has format described at https://godoc.org/github.com/globalsign/mgo#Credential
 type MongoAuthConfig struct {
 	Url         string
 	Credentials mgo.Credential
@@ -45,7 +58,6 @@ func NewMongo(cfg *MongoConfig) (*Mongo, error) {
 
 func (m *Mongo) Status() (interface{}, error) {
 	if m.Config.Ping {
-		fmt.Printf("Checking ping")
 		if err := m.Session.Ping(); err != nil {
 			return nil, fmt.Errorf("ping failed: %v", err)
 		}
