@@ -80,6 +80,18 @@ func TestValidateMongoConfig(t *testing.T) {
 		Expect(err.Error()).To(ContainSubstring("At minimum, either cfg.Ping or cfg.Collection"))
 	})
 
+	t.Run("Should error if url has wrong format", func(t *testing.T) {
+		cfg := &MongoConfig{
+			Auth: &MongoAuthConfig{
+				Url: "wrong\\localhost:6379",
+			},
+		}
+
+		err := validateMongoConfig(cfg)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Unable to parse URL"))
+	})
+
 }
 
 func TestMongoStatus(t *testing.T) {
@@ -99,6 +111,21 @@ func TestMongoStatus(t *testing.T) {
 		_, err = checker.Status()
 
 		Expect(err).To(BeNil())
+	})
+
+	t.Run("Should error if collection not found(available)", func(t *testing.T) {
+		cfg := &MongoConfig{
+			Collection: "go-check",
+		}
+		checker, _, err := setupMongo(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, err = checker.Status()
+
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("collection not found"))
 	})
 
 }
