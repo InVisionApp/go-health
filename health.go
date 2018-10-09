@@ -97,6 +97,9 @@ type State struct {
 	// Err is the error returned from a failed health check
 	Err string `json:"error,omitempty"`
 
+	// Fatal shows if the check will affect global result
+	Fatal bool `json:"fatal,omitempty"`
+
 	// Details contains more contextual detail about a
 	// failing health check.
 	Details interface{} `json:"details,omitempty"` // contains JSON message (that can be marshaled)
@@ -121,7 +124,6 @@ type Health struct {
 	StatusListener IStatusListener
 
 	active     *sBool // indicates whether the healthcheck is actively running
-	failed     *sBool // indicates whether the healthcheck has encountered a fatal error in one of its deps
 	configs    []*Config
 	states     map[string]State
 	statesLock sync.Mutex
@@ -136,7 +138,6 @@ func New() *Health {
 		states:     make(map[string]State, 0),
 		runners:    make(map[string]chan struct{}, 0),
 		active:     newBool(),
-		failed:     newBool(), // init as false
 		statesLock: sync.Mutex{},
 	}
 }
@@ -227,13 +228,18 @@ func (h *Health) Stop() error {
 //
 // The map key is the name of the check.
 func (h *Health) State() (map[string]State, bool, error) {
-	return h.safeGetStates(), h.failed.val(), nil
+	return h.safeGetStates(), h.Failed(), nil
 }
 
 // Failed will return the basic state of overall health. This should be used when
 // details about the failure are not needed
 func (h *Health) Failed() bool {
-	return h.failed.val()
+	for _, val := range h.safeGetStates() {
+		if val.Fatal && val.isFailure() {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struct{}) {
@@ -247,6 +253,7 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struc
 			Status:    "ok",
 			Details:   data,
 			CheckTime: time.Now(),
+			Fatal:     cfg.Fatal,
 		}
 
 		if err != nil {
@@ -258,11 +265,6 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struc
 
 			stateEntry.Err = err.Error()
 			stateEntry.Status = "failed"
-		}
-
-		// Toggle the global failed state if check is configured as fatal
-		if cfg.Fatal {
-			h.failed.set(err != nil)
 		}
 
 		h.safeUpdateState(stateEntry)
