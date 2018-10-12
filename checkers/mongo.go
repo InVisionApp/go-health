@@ -3,6 +3,11 @@ package checkers
 import (
 	"fmt"
 	"github.com/globalsign/mgo"
+	"time"
+)
+
+const (
+	DefaultDialTimeout = 10 * time.Second
 )
 
 // MongoConfig is used for configuring the go-mongo check.
@@ -13,13 +18,16 @@ import (
 //
 // "Ping" is optional; Ping runs a trivial ping command just to get in touch with the server.
 //
+// "DialTimeout" is optional; default @ 10s; determines the max time we'll wait to reach a server.
+//
 // Note: At least _one_ check method must be set/enabled; you can also enable
 // _all_ of the check methods (ie. perform a ping, or check particular collection for existense).
 type MongoConfig struct {
-	Auth       *MongoAuthConfig
-	Collection string
-	DB         string
-	Ping       bool
+	Auth        *MongoAuthConfig
+	Collection  string
+	DB          string
+	Ping        bool
+	DialTimeout time.Duration
 }
 
 // MongoAuthConfig, used to setup connection params for go-mongo check
@@ -41,7 +49,7 @@ func NewMongo(cfg *MongoConfig) (*Mongo, error) {
 		return nil, fmt.Errorf("unable to validate mongodb config: %v", err)
 	}
 
-	session, err := mgo.Dial(cfg.Auth.Url)
+	session, err := mgo.DialWithTimeout(cfg.Auth.Url, cfg.DialTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +59,7 @@ func NewMongo(cfg *MongoConfig) (*Mongo, error) {
 	}
 
 	return &Mongo{
-		Config: cfg,
+		Config:  cfg,
 		Session: session,
 	}, nil
 }
@@ -98,14 +106,17 @@ func validateMongoConfig(cfg *MongoConfig) error {
 		return fmt.Errorf("Url string must be set in auth config")
 	}
 
-	if !cfg.Ping && cfg.Collection == "" {
-		return fmt.Errorf("At minimum, either cfg.Ping or cfg.Collection")
-	}
-
 	if _, err := mgo.ParseURL(cfg.Auth.Url); err != nil {
 		return fmt.Errorf("Unable to parse URL: %v", err)
 	}
 
+	if !cfg.Ping && cfg.Collection == "" {
+		return fmt.Errorf("At minimum, either cfg.Ping or cfg.Collection")
+	}
+
+	if cfg.DialTimeout <= 0 {
+		cfg.DialTimeout = DefaultDialTimeout
+	}
+
 	return nil
 }
-

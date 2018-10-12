@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/zaffka/mongodb-boltdb-mock/db"
 	"testing"
+	"time"
 )
 
 func TestNewMongo(t *testing.T) {
@@ -33,6 +34,7 @@ func TestNewMongo(t *testing.T) {
 			Auth: &MongoAuthConfig{
 				Url: "foobar:42848",
 			},
+			DialTimeout: 20 * time.Millisecond,
 		}
 
 		r, err := NewMongo(cfg)
@@ -83,7 +85,7 @@ func TestValidateMongoConfig(t *testing.T) {
 	t.Run("Should error if url has wrong format", func(t *testing.T) {
 		cfg := &MongoConfig{
 			Auth: &MongoAuthConfig{
-				Url: "wrong\\localhost:6379",
+				Url: "localhost:40001?foo=1&bar=2",
 			},
 		}
 
