@@ -18,7 +18,7 @@ const (
 //
 // "Url" is _required_; memcached connection url, format is "10.0.0.1:11011". Port (:11011) is mandatory
 // "Timeout" defines timeout for socket write/read (useful for servers hosted on different machine)
-// "Ping" is optional; Ping establishes tcp connection to redis server.
+// "Ping" is optional; Ping establishes tcp connection to memcached server.
 type MemcachedConfig struct {
 	Url        string
 	Timeout    int32

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/bradfitz/gomemcache/memcache"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -40,6 +39,19 @@ func TestNewMemcached(t *testing.T) {
 		Expect(err.Error()).To(ContainSubstring("unable to validate memcached config"))
 		Expect(mc).To(BeNil())
 	})
+
+	t.Run("Memcached should contain Client and Config", func(t *testing.T) {
+		url := testUrl
+		cfg := &MemcachedConfig{
+			Url: url,
+			Ping: true,
+		}
+		mc, err := NewMemcached(cfg)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(mc).ToNot(BeNil())
+	})
+
 }
 
 func TestValidateMemcachedConfig(t *testing.T) {
@@ -100,6 +112,18 @@ func TestValidateMemcachedConfig(t *testing.T) {
 		err := validateMemcachedConfig(cfg)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Unable to parse URL"))
+	})
+
+	t.Run("Shouldn't error with properly set config", func(t *testing.T) {
+		cfg := &MemcachedConfig{
+			Url: testUrl,
+			Get: &MemcachedGetOptions{
+				Key: "should_return_valid",
+				Expect: []byte("should_return_valid"),
+			},
+		}
+		err := validateMemcachedConfig(cfg)
+		Expect(err).To(BeNil())
 	})
 
 }
@@ -167,6 +191,27 @@ func TestMemcachedStatus(t *testing.T) {
 			cfg := &MemcachedConfig{
 				Set: &MemcachedSetOptions{
 					Key: "should_return_default",
+				},
+			}
+			checker, server, err := setupMemcached(cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer server.Close()
+
+			_, err = checker.Status()
+			Expect(err).ToNot(HaveOccurred())
+
+			val, err := checker.wrapper.GetClient().Get(cfg.Set.Key)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(val.Value).To(Equal([]byte(MemcachedDefaultSetValue)))
+		})
+
+		t.Run("should use default .Value if .Value is set to empty string", func(t *testing.T) {
+			cfg := &MemcachedConfig{
+				Set: &MemcachedSetOptions{
+					Key: "should_return_default",
+					Value: "",
 				},
 			}
 			checker, server, err := setupMemcached(cfg)
@@ -312,7 +357,7 @@ type MockMemcachedClient struct {}
 
 func (m *MockMemcachedClient) Get(key string) (item *memcache.Item, err error) {
 	if emulateServerShutdown {
-		return nil, errors.New("Unable to complete get")
+		return nil, fmt.Errorf("Unable to complete get")
 	}
 	switch key {
 	case "should_return_valid":
@@ -330,7 +375,7 @@ func (m *MockMemcachedClient) Get(key string) (item *memcache.Item, err error) {
 
 func (m *MockMemcachedClient) Set(item *memcache.Item) error {
 	if emulateServerShutdown {
-		return errors.New("Unable to complete set")
+		return fmt.Errorf("Unable to complete set")
 	}
 	return nil
 }
