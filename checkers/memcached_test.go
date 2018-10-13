@@ -62,12 +62,34 @@ func TestValidateMemcachedConfig(t *testing.T) {
 
 	t.Run("Should error if none of the check methods are enabled", func(t *testing.T) {
 		cfg := &MemcachedConfig{
-			Url: "localhost:11011",
+			Url: testUrl,
 		}
 
 		err := validateMemcachedConfig(cfg)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("At minimum, either cfg.Ping, cfg.Set or cfg.Get must be set"))
+	})
+
+	t.Run("Should error if .Set is used but key is undefined", func(t *testing.T) {
+		cfg := &MemcachedConfig{
+			Url: testUrl,
+			Set: &MemcachedSetOptions{},
+		}
+
+		err := validateMemcachedConfig(cfg)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("If cfg.Set is used, cfg.Set.Key must be set"))
+	})
+
+	t.Run("Should error if .Get is used but key is undefined", func(t *testing.T) {
+		cfg := &MemcachedConfig{
+			Url: testUrl,
+			Get: &MemcachedGetOptions{},
+		}
+
+		err := validateMemcachedConfig(cfg)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("If cfg.Get is used, cfg.Get.Key must be set"))
 	})
 
 	t.Run("Should error if url has wrong format", func(t *testing.T) {
