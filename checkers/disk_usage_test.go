@@ -136,4 +136,18 @@ func TestDiskUsageStatus(t *testing.T) {
 		Expect(err.Error()).To(ContainSubstring("Warning: disk usage too high"))
 	})
 
+	t.Run("Shouldn't return error when everything is ok", func(t *testing.T) {
+		cfg := &DiskUsageConfig{
+			Path: os.TempDir(),
+			WarningThreshold: 99,
+			CriticalThreshold: 99,
+		}
+
+		du, err := NewDiskUsage(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = du.Status()
+		Expect(err).To(BeNil())
+	})
 }
