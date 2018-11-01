@@ -1,6 +1,7 @@
 package checkers
 
 import (
+	"crypto/tls"
 	"fmt"
 	"time"
 
@@ -38,6 +39,8 @@ type RedisAuthConfig struct {
 	Addr     string // `host:port` format
 	Password string // leave blank if no password
 	DB       int    // leave unset if no specific db
+
+	TLS *tls.Config // TLS config in case we are using in-transit encryption
 }
 
 // RedisSetOptions contains attributes that can alter the behavior of the redis
@@ -89,6 +92,8 @@ func NewRedis(cfg *RedisConfig) (*Redis, error) {
 		Addr:     cfg.Auth.Addr,
 		Password: cfg.Auth.Password, // no password set
 		DB:       cfg.Auth.DB,       // use default DB
+
+		TLSConfig: cfg.Auth.TLS,
 	})
 
 	if _, err := c.Ping().Result(); err != nil {
