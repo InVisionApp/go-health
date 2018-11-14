@@ -1,12 +1,13 @@
-package checkers
+package memcachechk
 
 import (
 	"fmt"
-	"github.com/bradfitz/gomemcache/memcache"
-	. "github.com/onsi/gomega"
 	"math/rand"
 	"strconv"
 	"testing"
+
+	"github.com/bradfitz/gomemcache/memcache"
+	. "github.com/onsi/gomega"
 )
 
 const (
@@ -21,7 +22,7 @@ func TestNewMemcached(t *testing.T) {
 	t.Run("Happy path", func(t *testing.T) {
 		url := testUrl
 		cfg := &MemcachedConfig{
-			Url: url,
+			Url:  url,
 			Ping: true,
 		}
 		mc, server, err := setupMemcached(cfg)
@@ -43,7 +44,7 @@ func TestNewMemcached(t *testing.T) {
 	t.Run("Memcached should contain Client and Config", func(t *testing.T) {
 		url := testUrl
 		cfg := &MemcachedConfig{
-			Url: url,
+			Url:  url,
 			Ping: true,
 		}
 		mc, err := NewMemcached(cfg)
@@ -118,7 +119,7 @@ func TestValidateMemcachedConfig(t *testing.T) {
 		cfg := &MemcachedConfig{
 			Url: testUrl,
 			Get: &MemcachedGetOptions{
-				Key: "should_return_valid",
+				Key:    "should_return_valid",
 				Expect: []byte("should_return_valid"),
 			},
 		}
@@ -210,7 +211,7 @@ func TestMemcachedStatus(t *testing.T) {
 		t.Run("should use default .Value if .Value is set to empty string", func(t *testing.T) {
 			cfg := &MemcachedConfig{
 				Set: &MemcachedSetOptions{
-					Key: "should_return_default",
+					Key:   "should_return_default",
 					Value: "",
 				},
 			}
@@ -337,13 +338,13 @@ func setupMemcached(cfg *MemcachedConfig) (*Memcached, *MockServer, error) {
 	cfg.Url = testUrl
 	checker := &Memcached{
 		wrapper: &MemcachedClientWrapper{&MockMemcachedClient{}},
-		Config: cfg,
+		Config:  cfg,
 	}
 
 	return checker, server, nil
 }
 
-type MockServer struct {}
+type MockServer struct{}
 
 func (s *MockServer) Close() {
 	emulateServerShutdown = true
@@ -353,7 +354,7 @@ func (s *MockServer) Reset() {
 	emulateServerShutdown = false
 }
 
-type MockMemcachedClient struct {}
+type MockMemcachedClient struct{}
 
 func (m *MockMemcachedClient) Get(key string) (item *memcache.Item, err error) {
 	if emulateServerShutdown {

@@ -1,9 +1,10 @@
-package checkers
+package diskchk
 
 import (
-	. "github.com/onsi/gomega"
 	"os"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 func TestNewDiskUsage(t *testing.T) {
@@ -11,8 +12,8 @@ func TestNewDiskUsage(t *testing.T) {
 
 	t.Run("Happy path and set thresholds", func(t *testing.T) {
 		cfg := &DiskUsageConfig{
-			Path: os.TempDir(),
-			WarningThreshold: 5,
+			Path:              os.TempDir(),
+			WarningThreshold:  5,
 			CriticalThreshold: 5,
 		}
 
@@ -58,8 +59,8 @@ func TestValidateDiskUsageConfig(t *testing.T) {
 
 	t.Run("Should error if warning threshold value set out of bounds", func(t *testing.T) {
 		cfg := &DiskUsageConfig{
-			Path: os.TempDir(),
-			WarningThreshold: -1,
+			Path:              os.TempDir(),
+			WarningThreshold:  -1,
 			CriticalThreshold: 100,
 		}
 
@@ -70,8 +71,8 @@ func TestValidateDiskUsageConfig(t *testing.T) {
 
 	t.Run("Should error if critical threshold value set out of bounds", func(t *testing.T) {
 		cfg := &DiskUsageConfig{
-			Path: os.TempDir(),
-			WarningThreshold: 10,
+			Path:              os.TempDir(),
+			WarningThreshold:  10,
 			CriticalThreshold: 101,
 		}
 
@@ -87,8 +88,8 @@ func TestDiskUsageStatus(t *testing.T) {
 
 	t.Run("Should error when critical threshold reached", func(t *testing.T) {
 		cfg := &DiskUsageConfig{
-			Path: "/unknown/path",
-			WarningThreshold: 50.0,
+			Path:              "/unknown/path",
+			WarningThreshold:  50.0,
 			CriticalThreshold: 50.0,
 		}
 
@@ -104,8 +105,8 @@ func TestDiskUsageStatus(t *testing.T) {
 
 	t.Run("Should error when critical threshold reached", func(t *testing.T) {
 		cfg := &DiskUsageConfig{
-			Path: os.TempDir(),
-			WarningThreshold: 90,
+			Path:              os.TempDir(),
+			WarningThreshold:  90,
 			CriticalThreshold: 1,
 		}
 
@@ -119,11 +120,10 @@ func TestDiskUsageStatus(t *testing.T) {
 		Expect(err.Error()).To(ContainSubstring("Critical: disk usage too high"))
 	})
 
-
 	t.Run("Should error when warning threshold reached", func(t *testing.T) {
 		cfg := &DiskUsageConfig{
-			Path: os.TempDir(),
-			WarningThreshold: 1,
+			Path:              os.TempDir(),
+			WarningThreshold:  1,
 			CriticalThreshold: 99,
 		}
 
@@ -138,8 +138,8 @@ func TestDiskUsageStatus(t *testing.T) {
 
 	t.Run("Shouldn't return error when everything is ok", func(t *testing.T) {
 		cfg := &DiskUsageConfig{
-			Path: os.TempDir(),
-			WarningThreshold: 99,
+			Path:              os.TempDir(),
+			WarningThreshold:  99,
 			CriticalThreshold: 99,
 		}
 
