@@ -1,9 +1,10 @@
-package checkers
+package mongochk
 
 import (
 	"fmt"
-	"github.com/globalsign/mgo"
 	"time"
+
+	"github.com/globalsign/mgo"
 )
 
 const (

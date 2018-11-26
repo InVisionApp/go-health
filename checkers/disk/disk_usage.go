@@ -1,7 +1,8 @@
-package checkers
+package diskchk
 
 import (
 	"fmt"
+
 	"github.com/shirou/gopsutil/disk"
 )
 
@@ -13,8 +14,8 @@ import (
 // "CriticalThreshold" is _required_; set percent (more than 0 and less 100) of free space at specified path,
 //  which triggers critical.
 type DiskUsageConfig struct {
-	Path string
-	WarningThreshold float64
+	Path              string
+	WarningThreshold  float64
 	CriticalThreshold float64
 }
 
@@ -23,7 +24,7 @@ type DiskUsage struct {
 	Config *DiskUsageConfig
 }
 
-func NewDiskUsage(cfg *DiskUsageConfig) (*DiskUsage, error)  {
+func NewDiskUsage(cfg *DiskUsageConfig) (*DiskUsage, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Passed in config cannot be nil")
 	}

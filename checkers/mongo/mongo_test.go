@@ -1,11 +1,12 @@
-package checkers
+package mongochk
 
 import (
 	"fmt"
-	. "github.com/onsi/gomega"
-	"github.com/zaffka/mongodb-boltdb-mock/db"
 	"testing"
 	"time"
+
+	. "github.com/onsi/gomega"
+	"github.com/zaffka/mongodb-boltdb-mock/db"
 )
 
 func TestNewMongo(t *testing.T) {

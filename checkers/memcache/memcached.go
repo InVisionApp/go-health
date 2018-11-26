@@ -1,11 +1,12 @@
-package checkers
+package memcachechk
 
 import (
 	"bytes"
 	"fmt"
-	"github.com/bradfitz/gomemcache/memcache"
 	"net"
 	"net/url"
+
+	"github.com/bradfitz/gomemcache/memcache"
 )
 
 const (
@@ -20,11 +21,11 @@ const (
 // "Timeout" defines timeout for socket write/read (useful for servers hosted on different machine)
 // "Ping" is optional; Ping establishes tcp connection to memcached server.
 type MemcachedConfig struct {
-	Url        string
-	Timeout    int32
-	Ping       bool
-	Set        *MemcachedSetOptions
-	Get        *MemcachedGetOptions
+	Url     string
+	Timeout int32
+	Ping    bool
+	Set     *MemcachedSetOptions
+	Get     *MemcachedGetOptions
 }
 
 type MemcachedClient interface {
@@ -33,7 +34,7 @@ type MemcachedClient interface {
 }
 
 type Memcached struct {
-	Config *MemcachedConfig
+	Config  *MemcachedConfig
 	wrapper *MemcachedClientWrapper
 }
 
@@ -77,7 +78,7 @@ func NewMemcached(cfg *MemcachedConfig) (*Memcached, error) {
 	mcWrapper := &MemcachedClientWrapper{memcache.New(cfg.Url)}
 
 	return &Memcached{
-		Config: cfg,
+		Config:  cfg,
 		wrapper: mcWrapper,
 	}, nil
 }
@@ -98,7 +99,7 @@ func (mc *Memcached) Status() (interface{}, error) {
 	}
 
 	if mc.Config.Get != nil {
-		val, err := mc.wrapper.GetClient().Get(mc.Config.Get.Key);
+		val, err := mc.wrapper.GetClient().Get(mc.Config.Get.Key)
 		if err != nil {
 			if err == memcache.ErrCacheMiss {
 				if !mc.Config.Get.NoErrorMissingKey {
@@ -158,6 +159,7 @@ func validateMemcachedConfig(cfg *MemcachedConfig) error {
 
 	return nil
 }
+
 // Used to simplify testing routines
 type MemcachedClientWrapper struct {
 	MemcachedClient
