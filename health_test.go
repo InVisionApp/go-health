@@ -534,6 +534,44 @@ func TestStartRunner(t *testing.T) {
 		// Since second checker has failed fatally, global healthcheck state should be failed as well
 		Expect(h.Failed()).To(BeTrue())
 	})
+
+	t.Run("Should call the onComplete hook when the health check is complete", func(t *testing.T) {
+		checker := &fakes.FakeICheckable{}
+
+		var calledState *State = nil
+		called := false
+		completeFunc := func(state *State) {
+			called = true
+			calledState = state
+		}
+
+		cfgs := []*Config{
+			{
+				Name:       "SuperCheck",
+				Checker:    checker,
+				Interval:   testCheckInterval,
+				Fatal:      false,
+				OnComplete: completeFunc,
+			},
+		}
+
+		h, _, err := setupRunners(cfgs, nil)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(h).ToNot(BeNil())
+
+		// Brittle...
+		time.Sleep(time.Duration(15) * time.Millisecond)
+
+		// Did the ticker fire and create a state entry?
+		Expect(h.states).To(HaveKey(cfgs[0].Name))
+
+		// Hook should have been called
+		Expect(called).To(BeTrue())
+		Expect(calledState).ToNot(BeNil())
+		Expect(calledState.Name).To(Equal(cfgs[0].Name))
+		Expect(calledState.Status).To(Equal("ok"))
+	})
 }
 
 func TestStatusListenerOnFail(t *testing.T) {
