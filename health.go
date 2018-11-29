@@ -273,7 +273,7 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struc
 		h.safeUpdateState(stateEntry)
 
 		if cfg.OnComplete != nil {
-			cfg.OnComplete(stateEntry)
+			go cfg.OnComplete(stateEntry)
 		}
 	}
 
