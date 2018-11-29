@@ -535,10 +535,10 @@ func TestStartRunner(t *testing.T) {
 		Expect(h.Failed()).To(BeTrue())
 	})
 
-	t.Run("Should call the onComplete hook when the health check is complete", func(t *testing.T) {
+	t.Run("Should call the OnComplete hook when the health check is complete", func(t *testing.T) {
 		checker := &fakes.FakeICheckable{}
 
-		var calledState *State = nil
+		var calledState *State
 		called := false
 		completeFunc := func(state *State) {
 			called = true
@@ -571,6 +571,52 @@ func TestStartRunner(t *testing.T) {
 		Expect(calledState).ToNot(BeNil())
 		Expect(calledState.Name).To(Equal(cfgs[0].Name))
 		Expect(calledState.Status).To(Equal("ok"))
+	})
+
+	t.Run("Modifying the state in the OnComplete hook should not modify the one saved in the states map", func(t *testing.T) {
+		checker := &fakes.FakeICheckable{}
+
+		var calledState *State
+		called := false
+		changedName := "Guybrush Threepwood"
+		changedStatus := "never"
+		completeFunc := func(state *State) {
+			called = true
+			state.Name = changedName
+			state.Status = changedStatus
+			calledState = state
+		}
+
+		cfgs := []*Config{
+			{
+				Name:       "CheckIt",
+				Checker:    checker,
+				Interval:   testCheckInterval,
+				Fatal:      false,
+				OnComplete: completeFunc,
+			},
+		}
+
+		h, _, err := setupRunners(cfgs, nil)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(h).ToNot(BeNil())
+
+		// Brittle...
+		time.Sleep(time.Duration(15) * time.Millisecond)
+
+		// Did the ticker fire and create a state entry?
+		Expect(h.states).To(HaveKey(cfgs[0].Name))
+
+		// Hook should have been called
+		Expect(called).To(BeTrue())
+		Expect(calledState).ToNot(BeNil())
+
+		//changed status in OnComplete should not affect internal states map
+		Expect(calledState.Name).To(Equal(changedName))
+		Expect(calledState.Status).To(Equal(changedStatus))
+		Expect(h.states[cfgs[0].Name].Name).To(Equal(cfgs[0].Name))
+		Expect(h.states[cfgs[0].Name].Status).To(Equal("ok"))
 	})
 }
 
