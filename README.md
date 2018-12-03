@@ -7,15 +7,15 @@
 <img align="right" src="images/go-health.svg" width="200">
 
 # go-health
-A library that enables *async* dependency health checking for services running on an orchastrated container platform such as kubernetes or mesos.
+A library that enables *async* dependency health checking for services running on an orchestrated container platform such as kubernetes or mesos.
 
 ## Why is this important?
-Container orchestration platforms require that the underlying service(s) expose a "healthcheck" which is used by the platform to determine whether the container is in a good or bad state.
+Container orchestration platforms require that the underlying service(s) expose a "health check" which is used by the platform to determine whether the container is in a good or bad state.
 
-While this can be achieved by simply exposing a `/status` endpoint that perfoms synchronous checks against its dependencies (followed by returning a `200` or `non-200` status code), it is not optimal for a number of reasons:
+While this can be achieved by simply exposing a `/status` endpoint that performs synchronous checks against its dependencies (followed by returning a `200` or `non-200` status code), it is not optimal for a number of reasons:
 
 * **It does not scale**
-    + The more dependencies you add, the longer your healthcheck will take to complete (and potentially cause your service to be killed off by the orchestration platform).
+    + The more dependencies you add, the longer your health check will take to complete (and potentially cause your service to be killed off by the orchestration platform).
     + Depending on the complexity of a given dependency, your check may be fairly involved where it is _okay_ for it to take `30s+` to complete.
 * **It adds unnecessary load on yours deps or at worst, becomes a DoS target**
     + **Non-malicious scenario**
@@ -26,10 +26,10 @@ While this can be achieved by simply exposing a `/status` endpoint that perfoms 
 
 With that said, not everyone _needs_ asynchronous checks. If your service has one dependency (and that is unlikely to change), it is trivial to write a basic, synchronous check and it will probably suffice.
 
-However, if you anticipate that your service will have several dependencies, with varying degrees of complexity for determing their health state - you should probably think about introducing asynchronous health checks.
+However, if you anticipate that your service will have several dependencies, with varying degrees of complexity for determining their health state - you should probably think about introducing asynchronous health checks.
 
 ## How does this library help?
-Writing an async healthchecking framework for your service is not a trivial task, especially if Go is not your primary language.
+Writing an async health checking framework for your service is not a trivial task, especially if Go is not your primary language.
 
 This library:
 
@@ -37,12 +37,10 @@ This library:
 * Allows you to define warning and fatal thresholds.
 * Will run your dependency checks on a given interval, in the background. **[1]**
 * Exposes a way for you to gather the check results in a *fast* and *thread-safe* manner to help determine the final status of your `/status` endpoint. **[2]**
-* Comes bundled w/ [pre-built checkers](/checkers) for well-known dependencies such as `Redis`, `HTTP`.
+* Comes bundled w/ [pre-built checkers](/checkers) for well-known dependencies such as `Redis`, `Mongo`, `HTTP` and more.
 * Makes it simple to implement and provide your own checkers (by adhering to the checker interface).
-* Is test-friendly
-    + Provides an easy way to disable dependency health checking.
-    + Uses an interface for its dependencies, allowing you to insert fakes/mocks at test time.
-* Allows you to trigger listener functions when a health check fails or recovers. **[3]**
+* Allows you to trigger listener functions when your health checks fail or recover using the `IStatusListener` interface.
+* Allows you to run custom logic when a specific health check completes by using the `OnComplete` hook.
 
 **[1]** Make sure to run your checks on a "sane" interval - ie. if you are checking your
 Redis dependency once every five minutes, your service is essentially running _blind_
@@ -53,8 +51,6 @@ every X _seconds_, rather than X _minutes_.
 you to query that data via `.State()`. Alternatively, you can use one of the
 pre-built HTTP handlers for your `/healthcheck` endpoint (and thus not have to
 manually inspect the state data).
-
-**[3]** By utilizing an implementation of the `IStatusListener` interface
 
 ## Example
 
@@ -92,7 +88,7 @@ h.AddChecks([]*health.Config{
 })
 ```
 
-3. Start the healthcheck
+3. Start the health check
 
 ```golang
 h.Start()
@@ -126,7 +122,15 @@ output would look something like this:
 ## Additional Documentation
 * [Examples](/examples)
   * [Status Listeners](/examples/status-listener)
+  * [OnComplete Hook](/examples/on-complete-hook)
 * [Checkers](/checkers)
+
+## OnComplete Hook VS IStatusListener
+At first glance it may seem that these two features provide the same functionality. However, they are meant for two different use cases:
+
+The `IStatusListener` is useful when you want to run a custom function in the event that the overall status of your health checks change. I.E. if `go-health` is currently checking the health for two different dependencies A and B, you may want to trip a circuit breaker for A and/or B. You could also put your service in a state where it will notify callers that it is not currently operating correctly. The opposite can be done when your service recovers.
+
+The `OnComplete` hook is called whenever a health check for an individual dependency is complete. This means that the function you register with the hook gets called every single time `go-health` completes the check. It's completely possible to register different functions with each configured health check or not to hook into the completion of certain health checks entirely. For instance, this can be useful if you want to perform cleanup after a complex health check or if you want to send metrics to your APM software when a health check completes. It is important to keep in mind that this hook effectively gets called on roughly the same interval you define for the health check.
 
 ## Contributing
 All PR's are welcome, as long as they are well tested. Follow the typical fork->branch->pr flow.
