@@ -46,12 +46,25 @@ test/cover: ## Run all tests + open coverage report for all packages
 	$(RM) .coverage .coverage.tmp
 
 test/cc: ## Run all tests + create coverage report for code climate
-	echo 'mode: $(COVERMODE)' > .coverage
+	echo 'mode: $(COVERMODE)' > c.out
 	for PKG in $(TEST_PACKAGES); do \
-		go test -coverprofile=.coverage.tmp -tags "integration" $$PKG; \
-		grep -v -E '^mode:' .coverage.tmp >> c.out; \
+		go test -covermode=$(COVERMODE) -coverprofile=.coverage.tmp $$PKG; \
+		if [ -f .coverage.tmp ]; then\
+			grep -v -E '^mode:' .coverage.tmp >> c.out; \
+			rm .coverage.tmp;\
+		fi;\
 	done
 	$(RM) .coverage.tmp
+
+test/codecov: ## Run all tests + open coverage report for all packages
+	for PKG in $(TEST_PACKAGES); do \
+		go test -covermode=$(COVERMODE) -coverprofile=profile.out $$PKG; \
+		if [ -f profile.out ]; then\
+			cat profile.out >> coverage.txt;\
+			rm profile.out;\
+		fi;\
+	done
+	$(RM) profile.out
 
 installdeps: ## Install needed dependencies for various middlewares
 	go get -t -v ./...
