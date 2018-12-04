@@ -1,3 +1,5 @@
 *.sketch
 /vendor/
 .DS_Store
+c.out
+.cover*

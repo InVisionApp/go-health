@@ -1,3 +1,7 @@
+env:
+  global:
+    - CC_TEST_REPORTER_ID=aa591e48dd3f08c8dd398d5dac90c4a4d4d32f0e359a932c035ea65a2b005efd
+
 language: go
 
 services:
@@ -6,8 +10,16 @@ services:
 before_install:
   - go get -t -v ./...
 
-script:
-  - make test/codecov
+before_script:
+  # Let code climate know that we are preparing to send a report
+  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+  - chmod +x ./cc-test-reporter
+  - ./cc-test-reporter before-build
 
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
+script:
+  # Run tests + generate coverage
+  - make test/cc
+
+after_script:
+  # Send coverage report to code climate
+  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT

@@ -45,6 +45,17 @@ test/cover: ## Run all tests + open coverage report for all packages
 	go tool cover -html=.coverage
 	$(RM) .coverage .coverage.tmp
 
+test/cc: ## Run all tests + create coverage report for code climate
+	echo 'mode: $(COVERMODE)' > c.out
+	for PKG in $(TEST_PACKAGES); do \
+		go test -covermode=$(COVERMODE) -coverprofile=.coverage.tmp $$PKG; \
+		if [ -f .coverage.tmp ]; then\
+			grep -v -E '^mode:' .coverage.tmp >> c.out; \
+			rm .coverage.tmp;\
+		fi;\
+	done
+	$(RM) .coverage.tmp
+
 test/codecov: ## Run all tests + open coverage report for all packages
 	for PKG in $(TEST_PACKAGES); do \
 		go test -covermode=$(COVERMODE) -coverprofile=profile.out $$PKG; \
