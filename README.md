@@ -39,8 +39,8 @@ This library:
 * Exposes a way for you to gather the check results in a *fast* and *thread-safe* manner to help determine the final status of your `/status` endpoint. **[2]**
 * Comes bundled w/ [pre-built checkers](/checkers) for well-known dependencies such as `Redis`, `Mongo`, `HTTP` and more.
 * Makes it simple to implement and provide your own checkers (by adhering to the checker interface).
-* Allows you to trigger listener functions when your health checks fail or recover using the `IStatusListener` interface.
-* Allows you to run custom logic when a specific health check completes by using the `OnComplete` hook.
+* Allows you to trigger listener functions when your health checks fail or recover using the [`IStatusListener` interface](#oncomplete-hook-vs-istatuslistener).
+* Allows you to run custom logic when a specific health check completes by using the [`OnComplete` hook](#oncomplete-hook-vs-istatuslistener).
 
 **[1]** Make sure to run your checks on a "sane" interval - ie. if you are checking your
 Redis dependency once every five minutes, your service is essentially running _blind_
