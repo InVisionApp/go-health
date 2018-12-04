@@ -83,6 +83,9 @@ type Config struct {
 	// Fatal marks a failing health check so that the
 	// entire health check request fails with a 500 error
 	Fatal bool
+
+	// Hook that gets called when this health check is complete
+	OnComplete func(state *State)
 }
 
 // State is a struct that contains the results of the latest
@@ -268,6 +271,10 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struc
 		}
 
 		h.safeUpdateState(stateEntry)
+
+		if cfg.OnComplete != nil {
+			go cfg.OnComplete(stateEntry)
+		}
 	}
 
 	go func() {
