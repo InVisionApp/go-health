@@ -101,7 +101,7 @@ type State struct {
 	Err string `json:"error,omitempty"`
 
 	// Fatal shows if the check will affect global result
-	Fatal bool `json:"fatal,omitempty"`
+	Fatal bool `json:"fatal"`
 
 	// Details contains more contextual detail about a
 	// failing health check.
