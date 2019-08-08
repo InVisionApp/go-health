@@ -109,7 +109,10 @@ func (r *ReachableChecker) Status() (interface{}, error) {
 
 func (r *ReachableChecker) fail(err error) (interface{}, error) {
 	if r.datadog != nil {
-		r.datadog.Incr(ReachableDDHealthErrors, r.tags, 1.0)
+		err := r.datadog.Incr(ReachableDDHealthErrors, r.tags, 1.0)
+		if err != nil{
+			return nil, err
+		}
 	}
 	return nil, err
 }

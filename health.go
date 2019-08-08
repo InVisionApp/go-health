@@ -1,4 +1,5 @@
-// Package health is a library that enables *async* dependency health checking for services running on an orchestrated container platform such as kubernetes or mesos.
+// Package health is a library that enables *async* dependency health checking for services
+// running on an orchestrated container platform such as kubernetes or mesos.
 //
 // For additional overview, documentation and contribution guidelines, refer to the project's "README.md".
 //
@@ -10,23 +11,23 @@ import (
 	"sync"
 	"time"
 
-	"github.com/InVisionApp/go-logger"
+	log "github.com/InVisionApp/go-logger"
 )
 
 //go:generate counterfeiter -o ./fakes/icheckable.go . ICheckable
 
 var (
 	// ErrNoAddCfgWhenActive is returned when you attempt to add check(s) to an already active healthcheck instance
-	ErrNoAddCfgWhenActive = errors.New("Unable to add new check configuration(s) while healthcheck is active")
+	ErrNoAddCfgWhenActive = errors.New("unable to add new check configuration(s) while healthcheck is active")
 
 	// ErrAlreadyRunning is returned when you attempt to "h.Start()" an already running healthcheck
-	ErrAlreadyRunning = errors.New("Healthcheck is already running - nothing to start")
+	ErrAlreadyRunning = errors.New("healthcheck is already running - nothing to start")
 
 	// ErrAlreadyStopped is returned when you attempt to "h.Stop()" a non-running healthcheck instance
-	ErrAlreadyStopped = errors.New("Healthcheck is not running - nothing to stop")
+	ErrAlreadyStopped = errors.New("healthcheck is not running - nothing to stop")
 
 	// ErrEmptyConfigs is returned when you attempt to add an empty slice of configs via "h.AddChecks()"
-	ErrEmptyConfigs = errors.New("Configs appears to be empty - nothing to add")
+	ErrEmptyConfigs = errors.New("configs appears to be empty - nothing to add")
 )
 
 // The IHealth interface can be useful if you plan on replacing the actual health
@@ -110,8 +111,11 @@ type State struct {
 	// CheckTime is the time of the last health check
 	CheckTime time.Time `json:"check_time"`
 
-	ContiguousFailures int64     `json:"num_failures"`     // the number of failures that occurred in a row
-	TimeOfFirstFailure time.Time `json:"first_failure_at"` // the time of the initial transitional failure for any given health check
+	// the number of failures that occurred in a row
+	ContiguousFailures int64 `json:"num_failures"`
+
+	// the time of the initial transitional failure for any given health check
+	TimeOfFirstFailure time.Time `json:"first_failure_at"`
 }
 
 // indicates state is failure
@@ -138,8 +142,8 @@ func New() *Health {
 	return &Health{
 		Logger:     log.NewSimple(),
 		configs:    make([]*Config, 0),
-		states:     make(map[string]State, 0),
-		runners:    make(map[string]chan struct{}, 0),
+		states:     make(map[string]State),
+		runners:    make(map[string]chan struct{}),
 		active:     newBool(),
 		statesLock: sync.Mutex{},
 	}
@@ -214,7 +218,7 @@ func (h *Health) Stop() error {
 	}
 
 	// Reset runner map
-	h.runners = make(map[string]chan struct{}, 0)
+	h.runners = make(map[string]chan struct{})
 
 	// Reset states
 	h.safeResetStates()
@@ -302,7 +306,7 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struc
 func (h *Health) safeResetStates() {
 	h.statesLock.Lock()
 	defer h.statesLock.Unlock()
-	h.states = make(map[string]State, 0)
+	h.states = make(map[string]State)
 }
 
 // updates the check state in a concurrency-safe manner
@@ -355,7 +359,7 @@ func (h *Health) handleStatusListener(stateEntry *State) {
 		stateEntry.ContiguousFailures = prevState.ContiguousFailures + 1
 	} else if prevState.isFailure() {
 		// recovery, previous state was failure
-		failureSeconds := time.Now().Sub(prevState.TimeOfFirstFailure).Seconds()
+		failureSeconds := time.Since(prevState.TimeOfFirstFailure).Seconds()
 
 		if h.StatusListener != nil {
 			go h.StatusListener.HealthCheckRecovered(stateEntry, prevState.ContiguousFailures, failureSeconds)

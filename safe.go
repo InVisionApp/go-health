@@ -15,12 +15,6 @@ func newBool() *sBool {
 	return &sBool{v: false}
 }
 
-func (b *sBool) set(v bool) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.v = v
-}
-
 func (b *sBool) setFalse() {
 	b.mu.Lock()
 	defer b.mu.Unlock()

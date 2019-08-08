@@ -35,7 +35,7 @@ type MongoConfig struct {
 // Url format is localhost:27017 or mongo://localhost:27017
 // Credential has format described at https://godoc.org/github.com/globalsign/mgo#Credential
 type MongoAuthConfig struct {
-	Url         string
+	URL         string
 	Credentials mgo.Credential
 }
 
@@ -50,7 +50,7 @@ func NewMongo(cfg *MongoConfig) (*Mongo, error) {
 		return nil, fmt.Errorf("unable to validate mongodb config: %v", err)
 	}
 
-	session, err := mgo.DialWithTimeout(cfg.Auth.Url, cfg.DialTimeout)
+	session, err := mgo.DialWithTimeout(cfg.Auth.URL, cfg.DialTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -96,23 +96,23 @@ func contains(data []string, needle string) bool {
 
 func validateMongoConfig(cfg *MongoConfig) error {
 	if cfg == nil {
-		return fmt.Errorf("Main config cannot be nil")
+		return fmt.Errorf("main config cannot be nil")
 	}
 
 	if cfg.Auth == nil {
-		return fmt.Errorf("Auth config cannot be nil")
+		return fmt.Errorf("auth config cannot be nil")
 	}
 
-	if cfg.Auth.Url == "" {
-		return fmt.Errorf("Url string must be set in auth config")
+	if cfg.Auth.URL == "" {
+		return fmt.Errorf("url string must be set in auth config")
 	}
 
-	if _, err := mgo.ParseURL(cfg.Auth.Url); err != nil {
-		return fmt.Errorf("Unable to parse URL: %v", err)
+	if _, err := mgo.ParseURL(cfg.Auth.URL); err != nil {
+		return fmt.Errorf("unable to parse URL: %v", err)
 	}
 
 	if !cfg.Ping && cfg.Collection == "" {
-		return fmt.Errorf("At minimum, either cfg.Ping or cfg.Collection")
+		return fmt.Errorf("at minimum, either cfg.Ping or cfg.Collection")
 	}
 
 	if cfg.DialTimeout <= 0 {

@@ -33,7 +33,7 @@ func TestNewMongo(t *testing.T) {
 		cfg := &MongoConfig{
 			Ping: true,
 			Auth: &MongoAuthConfig{
-				Url: "foobar:42848",
+				URL: "foobar:42848",
 			},
 			DialTimeout: 20 * time.Millisecond,
 		}
@@ -52,41 +52,41 @@ func TestValidateMongoConfig(t *testing.T) {
 		var cfg *MongoConfig
 		err := validateMongoConfig(cfg)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Main config cannot be nil"))
+		Expect(err.Error()).To(ContainSubstring("main config cannot be nil"))
 	})
 
 	t.Run("Should error with nil auth config", func(t *testing.T) {
 		err := validateMongoConfig(&MongoConfig{})
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Auth config cannot be nil"))
+		Expect(err.Error()).To(ContainSubstring("auth config cannot be nil"))
 	})
 
-	t.Run("Auth config must have an addr set", func(t *testing.T) {
+	t.Run("auth config must have an addr set", func(t *testing.T) {
 		cfg := &MongoConfig{
 			Auth: &MongoAuthConfig{},
 		}
 
 		err := validateMongoConfig(cfg)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Url string must be set in auth config"))
+		Expect(err.Error()).To(ContainSubstring("url string must be set in auth config"))
 	})
 
-	t.Run("Should error if none of the check methods are enabled", func(t *testing.T) {
+	t.Run("should error if none of the check methods are enabled", func(t *testing.T) {
 		cfg := &MongoConfig{
 			Auth: &MongoAuthConfig{
-				Url: "localhost:6379",
+				URL: "localhost:6379",
 			},
 		}
 
 		err := validateMongoConfig(cfg)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("At minimum, either cfg.Ping or cfg.Collection"))
+		Expect(err.Error()).To(ContainSubstring("at minimum, either cfg.Ping or cfg.Collection"))
 	})
 
-	t.Run("Should error if url has wrong format", func(t *testing.T) {
+	t.Run("should error if url has wrong format", func(t *testing.T) {
 		cfg := &MongoConfig{
 			Auth: &MongoAuthConfig{
-				Url: "localhost:40001?foo=1&bar=2",
+				URL: "localhost:40001?foo=1&bar=2",
 			},
 		}
 
@@ -100,7 +100,7 @@ func TestValidateMongoConfig(t *testing.T) {
 func TestMongoStatus(t *testing.T) {
 	RegisterTestingT(t)
 
-	t.Run("Shouldn't error when ping is enabled", func(t *testing.T) {
+	t.Run("shouldn't error when ping is enabled", func(t *testing.T) {
 		cfg := &MongoConfig{
 			Ping: true,
 		}
@@ -139,16 +139,16 @@ func setupMongo(cfg *MongoConfig) (*Mongo, db.Handler, error) {
 	err := server.Connect(url)
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("Unable to setup mongo: %v", err)
+		return nil, nil, fmt.Errorf("unable to setup mongo: %v", err)
 	}
 
 	cfg.Auth = &MongoAuthConfig{
-		Url: url,
+		URL: url,
 	}
 
 	checker, err := NewMongo(cfg)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Unable to setup checker: %v", err)
+		return nil, nil, fmt.Errorf("unable to setup checker: %v", err)
 	}
 
 	return checker, server, nil
