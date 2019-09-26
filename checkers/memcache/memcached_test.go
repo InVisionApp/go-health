@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	testUrl = "localhost:11011"
+	testURL = "localhost:11011"
 )
 
 var emulateServerShutdown bool
@@ -20,9 +20,9 @@ func TestNewMemcached(t *testing.T) {
 	RegisterTestingT(t)
 
 	t.Run("Happy path", func(t *testing.T) {
-		url := testUrl
+		url := testURL
 		cfg := &MemcachedConfig{
-			Url:  url,
+			URL:  url,
 			Ping: true,
 		}
 		mc, server, err := setupMemcached(cfg)
@@ -42,9 +42,9 @@ func TestNewMemcached(t *testing.T) {
 	})
 
 	t.Run("Memcached should contain Client and Config", func(t *testing.T) {
-		url := testUrl
+		url := testURL
 		cfg := &MemcachedConfig{
-			Url:  url,
+			URL:  url,
 			Ping: true,
 		}
 		mc, err := NewMemcached(cfg)
@@ -62,7 +62,7 @@ func TestValidateMemcachedConfig(t *testing.T) {
 		var cfg *MemcachedConfig
 		err := validateMemcachedConfig(cfg)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Main config cannot be nil"))
+		Expect(err.Error()).To(ContainSubstring("main config cannot be nil"))
 	})
 
 	t.Run("Config must have an url set", func(t *testing.T) {
@@ -70,33 +70,33 @@ func TestValidateMemcachedConfig(t *testing.T) {
 
 		err := validateMemcachedConfig(cfg)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Url string must be set in config"))
+		Expect(err.Error()).To(ContainSubstring("url string must be set in config"))
 	})
 
 	t.Run("Should error if none of the check methods are enabled", func(t *testing.T) {
 		cfg := &MemcachedConfig{
-			Url: testUrl,
+			URL: testURL,
 		}
 
 		err := validateMemcachedConfig(cfg)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("At minimum, either cfg.Ping, cfg.Set or cfg.Get must be set"))
+		Expect(err.Error()).To(ContainSubstring("at minimum, either cfg.Ping, cfg.Set or cfg.Get must be set"))
 	})
 
 	t.Run("Should error if .Set is used but key is undefined", func(t *testing.T) {
 		cfg := &MemcachedConfig{
-			Url: testUrl,
+			URL: testURL,
 			Set: &MemcachedSetOptions{},
 		}
 
 		err := validateMemcachedConfig(cfg)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("If cfg.Set is used, cfg.Set.Key must be set"))
+		Expect(err.Error()).To(ContainSubstring("if cfg.Set is used, cfg.Set.Key must be set"))
 	})
 
 	t.Run("Should error if .Get is used but key is undefined", func(t *testing.T) {
 		cfg := &MemcachedConfig{
-			Url: testUrl,
+			URL: testURL,
 			Get: &MemcachedGetOptions{},
 		}
 
@@ -107,7 +107,7 @@ func TestValidateMemcachedConfig(t *testing.T) {
 
 	t.Run("Should error if url has wrong format", func(t *testing.T) {
 		cfg := &MemcachedConfig{
-			Url: "wrong\\localhost:6379",
+			URL: "wrong\\localhost:6379",
 		}
 
 		err := validateMemcachedConfig(cfg)
@@ -117,7 +117,7 @@ func TestValidateMemcachedConfig(t *testing.T) {
 
 	t.Run("Shouldn't error with properly set config", func(t *testing.T) {
 		cfg := &MemcachedConfig{
-			Url: testUrl,
+			URL: testURL,
 			Get: &MemcachedGetOptions{
 				Key:    "should_return_valid",
 				Expect: []byte("should_return_valid"),
@@ -164,7 +164,7 @@ func TestMemcachedStatus(t *testing.T) {
 
 			_, err = checker.Status()
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Unable to complete set"))
+			Expect(err.Error()).To(ContainSubstring("unable to complete set"))
 		})
 
 		t.Run("should use .Value if .Value is defined", func(t *testing.T) {
@@ -283,7 +283,7 @@ func TestMemcachedStatus(t *testing.T) {
 
 			_, err = checker.Status()
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Unable to complete get"))
+			Expect(err.Error()).To(ContainSubstring("unable to complete get"))
 		})
 
 		t.Run("should error if .Expect is set and the value does not match", func(t *testing.T) {
@@ -335,7 +335,7 @@ func TestMemcachedStatus(t *testing.T) {
 func setupMemcached(cfg *MemcachedConfig) (*Memcached, *MockServer, error) {
 	server := &MockServer{}
 	server.Reset()
-	cfg.Url = testUrl
+	cfg.URL = testURL
 	checker := &Memcached{
 		wrapper: &MemcachedClientWrapper{&MockMemcachedClient{}},
 		Config:  cfg,
@@ -358,7 +358,7 @@ type MockMemcachedClient struct{}
 
 func (m *MockMemcachedClient) Get(key string) (item *memcache.Item, err error) {
 	if emulateServerShutdown {
-		return nil, fmt.Errorf("Unable to complete get")
+		return nil, fmt.Errorf("unable to complete get")
 	}
 	switch key {
 	case "should_return_valid":
@@ -376,7 +376,7 @@ func (m *MockMemcachedClient) Get(key string) (item *memcache.Item, err error) {
 
 func (m *MockMemcachedClient) Set(item *memcache.Item) error {
 	if emulateServerShutdown {
-		return fmt.Errorf("Unable to complete set")
+		return fmt.Errorf("unable to complete set")
 	}
 	return nil
 }

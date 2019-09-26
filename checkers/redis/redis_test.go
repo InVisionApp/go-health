@@ -33,7 +33,7 @@ func TestNewRedis(t *testing.T) {
 		r, err := NewRedis(cfg)
 
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Unable to validate redis config"))
+		Expect(err.Error()).To(ContainSubstring("unable to validate redis config"))
 		Expect(r).To(BeNil())
 	})
 
@@ -48,7 +48,7 @@ func TestNewRedis(t *testing.T) {
 		r, err := NewRedis(cfg)
 
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Unable to establish"))
+		Expect(err.Error()).To(ContainSubstring("unable to establish"))
 		Expect(r).To(BeNil())
 	})
 }
@@ -60,13 +60,13 @@ func TestValidateRedisConfig(t *testing.T) {
 		var cfg *RedisConfig
 		err := validateRedisConfig(cfg)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Main config cannot be nil"))
+		Expect(err.Error()).To(ContainSubstring("main config cannot be nil"))
 	})
 
 	t.Run("Should error with nil auth config", func(t *testing.T) {
 		err := validateRedisConfig(&RedisConfig{})
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Auth config cannot be nil"))
+		Expect(err.Error()).To(ContainSubstring("auth config cannot be nil"))
 	})
 
 	t.Run("Auth config must have an addr set", func(t *testing.T) {
@@ -76,7 +76,7 @@ func TestValidateRedisConfig(t *testing.T) {
 
 		err := validateRedisConfig(cfg)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Addr string must be set"))
+		Expect(err.Error()).To(ContainSubstring("addr string must be set"))
 	})
 
 	t.Run("Should error if none of the check methods are enabled", func(t *testing.T) {
@@ -88,7 +88,7 @@ func TestValidateRedisConfig(t *testing.T) {
 
 		err := validateRedisConfig(cfg)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("At minimum, either cfg.Ping, cfg.Set or cfg.Get"))
+		Expect(err.Error()).To(ContainSubstring("at minimum, either cfg.Ping, cfg.Set or cfg.Get"))
 	})
 
 	t.Run("Should error if .Set is used but key is undefined", func(t *testing.T) {
@@ -101,7 +101,7 @@ func TestValidateRedisConfig(t *testing.T) {
 
 		err := validateRedisConfig(cfg)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("If cfg.Set is used, cfg.Set.Key must be set"))
+		Expect(err.Error()).To(ContainSubstring("if cfg.Set is used, cfg.Set.Key must be set"))
 	})
 
 	t.Run("Should error if .Get is used but key is undefined", func(t *testing.T) {
@@ -114,7 +114,7 @@ func TestValidateRedisConfig(t *testing.T) {
 
 		err := validateRedisConfig(cfg)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("If cfg.Get is used, cfg.Get.Key must be set"))
+		Expect(err.Error()).To(ContainSubstring("if cfg.Get is used, cfg.Get.Key must be set"))
 	})
 
 	t.Run("If Set is enabled but value is unset, should use default value", func(t *testing.T) {
@@ -172,7 +172,7 @@ func TestRedisStatus(t *testing.T) {
 
 			_, err = checker.Status()
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Unable to complete set"))
+			Expect(err.Error()).To(ContainSubstring("unable to complete set"))
 		})
 
 		t.Run("should use .Value if .Value is defined", func(t *testing.T) {
@@ -232,7 +232,7 @@ func TestRedisStatus(t *testing.T) {
 
 			_, err = checker.Status()
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("Unable to complete get: '%v' not found", cfg.Get.Key)))
+			Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("unable to complete get: '%v' not found", cfg.Get.Key)))
 		})
 
 		t.Run("should NOT error if key is missing and NoErrorMissingKey IS set", func(t *testing.T) {
@@ -269,7 +269,7 @@ func TestRedisStatus(t *testing.T) {
 
 			_, err = checker.Status()
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Unable to complete get"))
+			Expect(err.Error()).To(ContainSubstring("unable to complete get"))
 		})
 
 		t.Run("should error if .Expect is set and the value does not match", func(t *testing.T) {
@@ -320,7 +320,7 @@ func TestRedisStatus(t *testing.T) {
 func setupRedis(cfg *RedisConfig) (*Redis, *miniredis.Miniredis, error) {
 	server, err := miniredis.Run()
 	if err != nil {
-		return nil, nil, fmt.Errorf("Unable to setup miniredis: %v", err)
+		return nil, nil, fmt.Errorf("unable to setup miniredis: %v", err)
 	}
 
 	cfg.Auth = &RedisAuthConfig{
@@ -329,7 +329,7 @@ func setupRedis(cfg *RedisConfig) (*Redis, *miniredis.Miniredis, error) {
 
 	checker, err := NewRedis(cfg)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Unable to setup checker: %v", err)
+		return nil, nil, fmt.Errorf("unable to setup checker: %v", err)
 	}
 
 	return checker, server, nil

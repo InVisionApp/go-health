@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"fmt"
+
 	. "github.com/onsi/gomega"
 )
 
@@ -56,6 +57,7 @@ func TestDo(t *testing.T) {
 		Expect(err).To(HaveOccurred())
 		Expect(res).To(BeNil())
 		Expect(err.Error()).To(ContainSubstring("error parsing payload"))
+		res.Close()
 	})
 
 	t.Run("Should error if request can't be created", func(t *testing.T) {
@@ -72,6 +74,7 @@ func TestDo(t *testing.T) {
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Unable to create new HTTP request for HTTPMonitor check"))
 		Expect(res).To(BeNil())
+		res.Close()
 	})
 }
 

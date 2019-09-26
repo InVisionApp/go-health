@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/InVisionApp/go-health/fakes"
-	"github.com/InVisionApp/go-logger"
+	log "github.com/InVisionApp/go-logger"
 	"github.com/InVisionApp/go-logger/shims/testlog"
 )
 
@@ -24,7 +24,8 @@ func (mock *MockStatusListener) HealthCheckFailed(entry *State) {
 	testLogger.Debug(entry.Name)
 }
 
-func (mock *MockStatusListener) HealthCheckRecovered(entry *State, recordedFailures int64, failureDurationSeconds float64) {
+func (mock *MockStatusListener) HealthCheckRecovered(entry *State,
+	recordedFailures int64, failureDurationSeconds float64) {
 	testLogger.Debug(entry.Name, recordedFailures, failureDurationSeconds)
 }
 
@@ -573,51 +574,52 @@ func TestStartRunner(t *testing.T) {
 		Expect(calledState.Status).To(Equal("ok"))
 	})
 
-	t.Run("Modifying the state in the OnComplete hook should not modify the one saved in the states map", func(t *testing.T) {
-		checker := &fakes.FakeICheckable{}
+	t.Run("Modifying the state in the OnComplete hook should not modify the one saved in the states map",
+		func(t *testing.T) {
+			checker := &fakes.FakeICheckable{}
 
-		var calledState *State
-		called := false
-		changedName := "Guybrush Threepwood"
-		changedStatus := "never"
-		completeFunc := func(state *State) {
-			called = true
-			state.Name = changedName
-			state.Status = changedStatus
-			calledState = state
-		}
+			var calledState *State
+			called := false
+			changedName := "Guybrush Threepwood"
+			changedStatus := "never"
+			completeFunc := func(state *State) {
+				called = true
+				state.Name = changedName
+				state.Status = changedStatus
+				calledState = state
+			}
 
-		cfgs := []*Config{
-			{
-				Name:       "CheckIt",
-				Checker:    checker,
-				Interval:   testCheckInterval,
-				Fatal:      false,
-				OnComplete: completeFunc,
-			},
-		}
+			cfgs := []*Config{
+				{
+					Name:       "CheckIt",
+					Checker:    checker,
+					Interval:   testCheckInterval,
+					Fatal:      false,
+					OnComplete: completeFunc,
+				},
+			}
 
-		h, _, err := setupRunners(cfgs, nil)
+			h, _, err := setupRunners(cfgs, nil)
 
-		Expect(err).ToNot(HaveOccurred())
-		Expect(h).ToNot(BeNil())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(h).ToNot(BeNil())
 
-		// Brittle...
-		time.Sleep(time.Duration(15) * time.Millisecond)
+			// Brittle...
+			time.Sleep(time.Duration(15) * time.Millisecond)
 
-		// Did the ticker fire and create a state entry?
-		Expect(h.states).To(HaveKey(cfgs[0].Name))
+			// Did the ticker fire and create a state entry?
+			Expect(h.states).To(HaveKey(cfgs[0].Name))
 
-		// Hook should have been called
-		Expect(called).To(BeTrue())
-		Expect(calledState).ToNot(BeNil())
+			// Hook should have been called
+			Expect(called).To(BeTrue())
+			Expect(calledState).ToNot(BeNil())
 
-		//changed status in OnComplete should not affect internal states map
-		Expect(calledState.Name).To(Equal(changedName))
-		Expect(calledState.Status).To(Equal(changedStatus))
-		Expect(h.states[cfgs[0].Name].Name).To(Equal(cfgs[0].Name))
-		Expect(h.states[cfgs[0].Name].Status).To(Equal("ok"))
-	})
+			//changed status in OnComplete should not affect internal states map
+			Expect(calledState.Name).To(Equal(changedName))
+			Expect(calledState.Status).To(Equal(changedStatus))
+			Expect(h.states[cfgs[0].Name].Name).To(Equal(cfgs[0].Name))
+			Expect(h.states[cfgs[0].Name].Status).To(Equal("ok"))
+		})
 }
 
 func TestStatusListenerOnFail(t *testing.T) {
