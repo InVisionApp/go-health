@@ -2,7 +2,7 @@
 //
 // For additional overview, documentation and contribution guidelines, refer to the project's "README.md".
 //
-// For example usage, refer to https://module github.com/InVisionApp/go-health/v2/tree/master/examples/simple-http-server.
+// For example usage, refer to https://github.com/InVisionApp/go-health/tree/master/examples/simple-http-server.
 package health
 
 import (
