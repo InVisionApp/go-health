@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/onsi/gomega"
 	"github.com/DATA-DOG/go-sqlmock"
+	. "github.com/onsi/gomega"
 )
 
 const execSQL = "UPDATE some_table"

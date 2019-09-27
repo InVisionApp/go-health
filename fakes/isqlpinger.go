@@ -5,7 +5,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/InVisionApp/go-health/checkers"
+	"github.com/InVisionApp/go-health/v2/checkers"
 )
 
 type FakeSQLPinger struct {
