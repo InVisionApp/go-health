@@ -140,7 +140,7 @@ func New() *Health {
 		configs:    make([]*Config, 0),
 		states:     make(map[string]State, 0),
 		runners:    make(map[string]chan struct{}, 0),
-		active:     newBool(),
+		active:     &sBool{},
 		statesLock: sync.Mutex{},
 	}
 }

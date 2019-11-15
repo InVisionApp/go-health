@@ -1,48 +1,44 @@
 package health
 
-import "sync"
+import (
+	"sync/atomic"
+)
 
 //#################
 //Thread Safe Types
 //#################
 
 type sBool struct {
-	v  bool
-	mu sync.Mutex
-}
-
-func newBool() *sBool {
-	return &sBool{v: false}
+	n int32
 }
 
 func (b *sBool) set(v bool) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.v = v
+	if v {
+		atomic.SwapInt32(&b.n, 1)
+		return
+	}
+	atomic.SwapInt32(&b.n, 0)
 }
 
 func (b *sBool) setFalse() {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.v = false
+	b.set(false)
 }
 
 func (b *sBool) setTrue() {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.v = true
+	b.set(true)
 }
 
-func (b *sBool) val() bool {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return b.v
+func (b sBool) val() bool {
+	n := atomic.LoadInt32(&b.n)
+	if n == 1 {
+		return true
+	}
+	return false
 }
 
-func (b *sBool) String() string {
+func (b sBool) String() string {
 	if b.val() {
 		return "true"
 	}
-
 	return "false"
 }

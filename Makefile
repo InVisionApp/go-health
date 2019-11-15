@@ -48,7 +48,7 @@ test/cover: ## Run all tests + open coverage report for all packages
 test/cc: ## Run all tests + create coverage report for code climate
 	echo 'mode: $(COVERMODE)' > c.out
 	for PKG in $(TEST_PACKAGES); do \
-		go test -covermode=$(COVERMODE) -coverprofile=.coverage.tmp $$PKG; \
+		go test -race -covermode=$(COVERMODE) -coverprofile=.coverage.tmp $$PKG; \
 		if [ -f .coverage.tmp ]; then\
 			grep -v -E '^mode:' .coverage.tmp >> c.out; \
 			rm .coverage.tmp;\
