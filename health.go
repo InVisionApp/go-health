@@ -92,7 +92,7 @@ type Config struct {
 // run of a particular check.
 type State struct {
 	// Name of the health check
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// Status of the health check state ("ok" or "failed")
 	Status string `json:"status"`
@@ -101,17 +101,17 @@ type State struct {
 	Err string `json:"error,omitempty"`
 
 	// Fatal shows if the check will affect global result
-	Fatal bool `json:"fatal,omitempty"`
+	Fatal bool `json:"fatal"`
 
 	// Details contains more contextual detail about a
 	// failing health check.
 	Details interface{} `json:"details,omitempty"` // contains JSON message (that can be marshaled)
 
 	// CheckTime is the time of the last health check
-	CheckTime time.Time `json:"check_time"`
+	CheckTime time.Time `json:"check_time,omitempty"`
 
-	ContiguousFailures int64     `json:"num_failures"`     // the number of failures that occurred in a row
-	TimeOfFirstFailure time.Time `json:"first_failure_at"` // the time of the initial transitional failure for any given health check
+	ContiguousFailures int64     `json:"num_failures,omitempty"`     // the number of failures that occurred in a row
+	TimeOfFirstFailure time.Time `json:"first_failure_at,omitempty"` // the time of the initial transitional failure for any given health check
 }
 
 // indicates state is failure
