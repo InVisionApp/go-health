@@ -20,8 +20,13 @@ var (
 	ReachableDefaultTimeout = time.Duration(3) * time.Second
 )
 
+// Closer is a closeable resource like net.Conn
+type Closer interface {
+	Close() error
+}
+
 // ReachableDialer is the signature for a function that checks if an address is reachable
-type ReachableDialer func(network, address string, timeout time.Duration) (net.Conn, error)
+type ReachableDialer func(network, address string, timeout time.Duration) (Closer, error)
 
 // ReachableDatadogIncrementer is any datadog client that has the Incr method for tracking metrics
 type ReachableDatadogIncrementer interface {
@@ -67,7 +72,7 @@ func NewReachableChecker(cfg *ReachableConfig) (*ReachableChecker, error) {
 	if cfg.Timeout != 0 {
 		t = cfg.Timeout
 	}
-	d := net.DialTimeout
+	d := defaultDialer
 	if cfg.Dialer != nil {
 		d = cfg.Dialer
 	}
@@ -84,6 +89,11 @@ func NewReachableChecker(cfg *ReachableConfig) (*ReachableChecker, error) {
 		tags:    cfg.DatadogTags,
 	}
 	return r, nil
+}
+
+func defaultDialer(network, address string, timeout time.Duration) (Closer, error) {
+	conn, err := net.DialTimeout(network, address, timeout)
+	return conn, err
 }
 
 // Status checks if the endpoint is reachable
