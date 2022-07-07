@@ -219,6 +219,9 @@ func (h *Health) Stop() error {
 	// Reset states
 	h.safeResetStates()
 
+	// Checkers are now inactive
+	h.active.setFalse()	
+
 	return nil
 }
 
