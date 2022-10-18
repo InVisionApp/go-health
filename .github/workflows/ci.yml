@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  goVersion: 1.19
+  mongodbVersion: 4.2
+
+jobs:
+  test-unit:
+    name: test-unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.goVersion }}
+      - uses: actions/checkout@v3
+      - run: make test/unit
+  
+  test-integration:
+    name: test-integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: supercharge/mongodb-github-action@1.8.0
+        with:
+          mongodb-version: ${{ env.mongodbVersion }}
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.goVersion }}
+      - uses: actions/checkout@v3
+      - run: make test/integration
