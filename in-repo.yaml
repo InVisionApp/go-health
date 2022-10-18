@@ -3,7 +3,10 @@ visibility: public
 
 owner:
   active:
-    team: core
+    team: platform-sre-eng
+    since: 2022-10-18
+  history:
+  - team: core
     since: 2017-12-01
 code-coverage:
   # please see https://invisionapp.atlassian.net/wiki/spaces/ICT/pages/888799838/Establishing+code+coverage+goals for how to set this value appropriately
