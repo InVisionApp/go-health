@@ -1,3 +1,6 @@
+specVersion: v1
+visibility: public
+
 owner:
   active:
     team: core
@@ -5,4 +8,3 @@ owner:
 code-coverage:
   # please see https://invisionapp.atlassian.net/wiki/spaces/ICT/pages/888799838/Establishing+code+coverage+goals for how to set this value appropriately
   goal-percent: 100
-visibility: private
