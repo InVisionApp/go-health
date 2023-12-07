@@ -1,6 +1,7 @@
 package diskchk
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -98,7 +99,7 @@ func TestDiskUsageStatus(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		_, err = du.Status()
+		_, err = du.Status(context.TODO())
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Error getting disk usage"))
 	})
@@ -115,7 +116,7 @@ func TestDiskUsageStatus(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		_, err = du.Status()
+		_, err = du.Status(context.TODO())
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Critical: disk usage too high"))
 	})
@@ -131,7 +132,7 @@ func TestDiskUsageStatus(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = du.Status()
+		_, err = du.Status(context.TODO())
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Warning: disk usage too high"))
 	})
@@ -147,7 +148,7 @@ func TestDiskUsageStatus(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = du.Status()
+		_, err = du.Status(context.TODO())
 		Expect(err).To(BeNil())
 	})
 }

@@ -1,6 +1,7 @@
 package diskchk
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/shirou/gopsutil/disk"
@@ -10,9 +11,12 @@ import (
 //
 // "Path" is _required_; path to check directory/drive (ex. /home/user)
 // "WarningThreshold" is _required_; set percent (more than 0 and less 100) of free space at specified path,
-//  which triggers warning.
+//
+//	which triggers warning.
+//
 // "CriticalThreshold" is _required_; set percent (more than 0 and less 100) of free space at specified path,
-//  which triggers critical.
+//
+//	which triggers critical.
 type DiskUsageConfig struct {
 	Path              string
 	WarningThreshold  float64
@@ -40,7 +44,7 @@ func NewDiskUsage(cfg *DiskUsageConfig) (*DiskUsage, error) {
 
 // Status is used for performing a diskusage check against a dependency; it satisfies
 // the "ICheckable" interface.
-func (d *DiskUsage) Status() (interface{}, error) {
+func (d *DiskUsage) Status(ctx context.Context) (interface{}, error) {
 	stats, err := disk.Usage(d.Config.Path)
 
 	if err != nil {

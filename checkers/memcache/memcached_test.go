@@ -1,6 +1,7 @@
 package memcachechk
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -140,10 +141,10 @@ func TestMemcachedStatus(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = checker.Status()
+		_, err = checker.Status(context.TODO())
 		Expect(err).To(HaveOccurred())
 
-		_, err = checker.Status()
+		_, err = checker.Status(context.TODO())
 		Expect(err.Error()).To(ContainSubstring("Ping failed"))
 	})
 
@@ -162,7 +163,7 @@ func TestMemcachedStatus(t *testing.T) {
 			// Mark server is stoppped
 			server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Unable to complete set"))
 		})
@@ -180,7 +181,7 @@ func TestMemcachedStatus(t *testing.T) {
 			}
 			defer server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 
 			val, err := checker.wrapper.GetClient().Get(cfg.Set.Key)
@@ -200,7 +201,7 @@ func TestMemcachedStatus(t *testing.T) {
 			}
 			defer server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 
 			val, err := checker.wrapper.GetClient().Get(cfg.Set.Key)
@@ -221,7 +222,7 @@ func TestMemcachedStatus(t *testing.T) {
 			}
 			defer server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 
 			val, err := checker.wrapper.GetClient().Get(cfg.Set.Key)
@@ -243,7 +244,7 @@ func TestMemcachedStatus(t *testing.T) {
 			}
 			defer server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).To(HaveOccurred())
 
 			Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("Unable to complete get: '%v' not found", cfg.Get.Key)))
@@ -262,7 +263,7 @@ func TestMemcachedStatus(t *testing.T) {
 			}
 			defer server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -281,7 +282,7 @@ func TestMemcachedStatus(t *testing.T) {
 			// Close the server so the GET fails
 			server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Unable to complete get"))
 		})
@@ -304,7 +305,7 @@ func TestMemcachedStatus(t *testing.T) {
 			}
 			defer server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("does not match expected value"))
 		})
@@ -325,7 +326,7 @@ func TestMemcachedStatus(t *testing.T) {
 			}
 			defer server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})

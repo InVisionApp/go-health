@@ -5,7 +5,7 @@ types of dependencies.
 
 If a pre-built checker is not available, you can create your own checkers by
 implementing the `ICheckable` interface (which consists of a single method -
-`Status() (interface{}, error)`).
+`Status(context.Context) (interface{}, error)`).
 
 If you do create a custom-checker - consider opening a PR and adding it to the
 list of built-in checkers.
@@ -44,17 +44,19 @@ The SQL DB checker has implementations for the following interfaces:
 - `SQLExecer`, which encloses `ExecContext` in [`sql.DB`](https://golang.org/pkg/database/sql/#DB.ExecContext), [`sql.Conn`](https://golang.org/pkg/database/sql/#Conn.ExecContext), [`sql.Stmt`](https://golang.org/pkg/database/sql/#Stmt.ExecContext), and [`sql.Tx`](https://golang.org/pkg/database/sql/#Tx.ExecContext)
 
 #### SQLConfig
-The `SQLConfig` struct is required when using the SQL DB health check.  It **must** contain an inplementation of one of either `SQLPinger`, `SQLQueryer`, or `SQLExecer`.
+
+The `SQLConfig` struct is required when using the SQL DB health check. It **must** contain an inplementation of one of either `SQLPinger`, `SQLQueryer`, or `SQLExecer`.
 
 If `SQLQueryer` or `SQLExecer` are implemented, then `Query` must be valid (len > 0).
 
-Additionally, if `SQLQueryer` or `SQLExecer` are implemented, you have the option to also set either the `QueryerResultHandler` or `ExecerResultHandler` functions.  These functions allow you to evaluate the result of a query or exec operation.  If you choose not to implement these yourself, the default handlers are used.
+Additionally, if `SQLQueryer` or `SQLExecer` are implemented, you have the option to also set either the `QueryerResultHandler` or `ExecerResultHandler` functions. These functions allow you to evaluate the result of a query or exec operation. If you choose not to implement these yourself, the default handlers are used.
 
 The default `ExecerResultHandler` is successful if the passed exec operation affected one and only one row.
 
 The default `QueryerResultHandler` is successful if the passed query operation returned one and only one row.
 
 #### SQLPinger
+
 Use the `SQLPinger` interface if your health check is only concerned with your application's database connectivity. All you need to do is set the `Pinger` value in your `SQLConfig`.
 
 ```golang
@@ -80,11 +82,13 @@ Use the `SQLPinger` interface if your health check is only concerned with your a
 ```
 
 #### SQLQueryer
-Use the `SQLQueryer` interface if your health check requires you to read rows from your database.  You can optionally supply a query result handler function.  If you don't supply one, the default function will be used.  The function signature for the handler is:
+
+Use the `SQLQueryer` interface if your health check requires you to read rows from your database. You can optionally supply a query result handler function. If you don't supply one, the default function will be used. The function signature for the handler is:
 
 ```golang
 type SQLQueryerResultHandler func(rows *sql.Rows) (bool, error)
 ```
+
 The default query handler returns true if there was exactly one row in the resultset:
 
 ```golang
@@ -146,7 +150,8 @@ Sample `SQLQueryer` implementation:
 ```
 
 #### SQLExecer
-Use the `SQLExecer` interface if your health check requires you to update or insert to your database.  You can optionally supply an exec result handler function.  If you don't supply one, the default function will be used.  The function signature for the handler is:
+
+Use the `SQLExecer` interface if your health check requires you to update or insert to your database. You can optionally supply an exec result handler function. If you don't supply one, the default function will be used. The function signature for the handler is:
 
 ```golang
 type SQLExecerResultHandler func(result sql.Result) (bool, error)

@@ -1,6 +1,7 @@
 package redischk
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"time"
@@ -108,7 +109,7 @@ func NewRedis(cfg *RedisConfig) (*Redis, error) {
 
 // Status is used for performing a redis check against a dependency; it satisfies
 // the "ICheckable" interface.
-func (r *Redis) Status() (interface{}, error) {
+func (r *Redis) Status(ctx context.Context) (interface{}, error) {
 	if r.Config.Ping {
 		if _, err := r.client.Ping().Result(); err != nil {
 			return nil, fmt.Errorf("Ping failed: %v", err)

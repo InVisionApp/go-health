@@ -1,6 +1,7 @@
 package checkers
 
 import (
+	"context"
 	"net"
 	"net/url"
 	"time"
@@ -87,7 +88,7 @@ func NewReachableChecker(cfg *ReachableConfig) (*ReachableChecker, error) {
 }
 
 // Status checks if the endpoint is reachable
-func (r *ReachableChecker) Status() (interface{}, error) {
+func (r *ReachableChecker) Status(ctx context.Context) (interface{}, error) {
 	// We must provide a port so when a port is not set in the URL provided use
 	// the default port (80)
 	port := r.url.Port()

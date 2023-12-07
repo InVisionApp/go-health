@@ -1,6 +1,7 @@
 package checkers
 
 import (
+	"context"
 	"math"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"fmt"
+
 	. "github.com/onsi/gomega"
 )
 
@@ -164,7 +166,7 @@ func TestHTTPStatus(t *testing.T) {
 		checker, err := NewHTTP(cfg)
 		Expect(err).ToNot(HaveOccurred())
 
-		data, err := checker.Status()
+		data, err := checker.Status(context.TODO())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(data).To(BeNil())
 	})
@@ -179,7 +181,7 @@ func TestHTTPStatus(t *testing.T) {
 		checker, err := NewHTTP(cfg)
 		Expect(err).ToNot(HaveOccurred())
 
-		data, err := checker.Status()
+		data, err := checker.Status(context.TODO())
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("unsupported protocol"))
 		Expect(data).To(BeNil())
@@ -201,7 +203,7 @@ func TestHTTPStatus(t *testing.T) {
 		checker, err := NewHTTP(cfg)
 		Expect(err).ToNot(HaveOccurred())
 
-		data, err := checker.Status()
+		data, err := checker.Status(context.TODO())
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("does not match expected status code"))
 		Expect(data).To(BeNil())
@@ -225,7 +227,7 @@ func TestHTTPStatus(t *testing.T) {
 		checker, err := NewHTTP(cfg)
 		Expect(err).ToNot(HaveOccurred())
 
-		data, err := checker.Status()
+		data, err := checker.Status(context.TODO())
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("does not contain expected content"))
 		Expect(data).To(BeNil())
@@ -249,7 +251,7 @@ func TestHTTPStatus(t *testing.T) {
 		checker, err := NewHTTP(cfg)
 		Expect(err).ToNot(HaveOccurred())
 
-		data, err := checker.Status()
+		data, err := checker.Status(context.TODO())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(data).To(BeNil())
 	})
@@ -277,7 +279,7 @@ func TestHTTPStatus(t *testing.T) {
 		checker, err := NewHTTP(cfg)
 		Expect(err).ToNot(HaveOccurred())
 
-		data, err := checker.Status()
+		data, err := checker.Status(context.TODO())
 
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Unable to read response body to perform content expectancy check"))
