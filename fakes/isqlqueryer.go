@@ -5,8 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"sync"
-
-	"github.com/InVisionApp/go-health/checkers"
 )
 
 type FakeSQLQueryer struct {
@@ -105,5 +103,3 @@ func (fake *FakeSQLQueryer) recordInvocation(key string, args []interface{}) {
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
-
-var _ checkers.SQLQueryer = new(FakeSQLQueryer)

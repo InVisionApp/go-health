@@ -4,8 +4,6 @@ package fakes
 import (
 	"context"
 	"sync"
-
-	"github.com/InVisionApp/go-health/checkers"
 )
 
 type FakeSQLPinger struct {
@@ -95,5 +93,3 @@ func (fake *FakeSQLPinger) recordInvocation(key string, args []interface{}) {
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
-
-var _ checkers.SQLPinger = new(FakeSQLPinger)

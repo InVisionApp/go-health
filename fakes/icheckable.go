@@ -4,8 +4,6 @@ package fakes
 import (
 	"context"
 	"sync"
-
-	"github.com/InVisionApp/go-health"
 )
 
 type FakeICheckable struct {
@@ -100,5 +98,3 @@ func (fake *FakeICheckable) recordInvocation(key string, args []interface{}) {
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
-
-var _ health.ICheckable = new(FakeICheckable)
