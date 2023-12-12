@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/shirou/gopsutil/disk"
+	"github.com/shirou/gopsutil/v3/disk"
 )
 
 // DiskUsageConfig is used for configuring the go-diskusage check.
