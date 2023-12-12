@@ -3,8 +3,6 @@ package fakes
 
 import (
 	"sync"
-
-	"github.com/InVisionApp/go-health/v2/checkers"
 )
 
 type FakeReachableDatadogIncrementer struct {
@@ -103,5 +101,3 @@ func (fake *FakeReachableDatadogIncrementer) recordInvocation(key string, args [
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
-
-var _ checkers.ReachableDatadogIncrementer = new(FakeReachableDatadogIncrementer)

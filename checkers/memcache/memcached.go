@@ -2,6 +2,7 @@ package memcachechk
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net"
 	"net/url"
@@ -83,7 +84,7 @@ func NewMemcached(cfg *MemcachedConfig) (*Memcached, error) {
 	}, nil
 }
 
-func (mc *Memcached) Status() (interface{}, error) {
+func (mc *Memcached) Status(ctx context.Context) (interface{}, error) {
 
 	if mc.Config.Ping {
 		if _, err := net.Dial("tcp", mc.Config.Url); err != nil {

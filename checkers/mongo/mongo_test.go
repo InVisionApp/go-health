@@ -3,6 +3,7 @@
 package mongochk
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -35,14 +36,14 @@ func TestNewMongo(t *testing.T) {
 		cfg := &MongoConfig{
 			Ping: true,
 			Auth: &MongoAuthConfig{
-				Url: "foobar:42848",
+				Url: "mongodb://foobar:42848",
 			},
 			DialTimeout: 20 * time.Millisecond,
 		}
 
 		r, err := NewMongo(cfg)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("no reachable servers"))
+		Expect(err.Error()).To(ContainSubstring("unable to establish initial connection to mongodb"))
 		Expect(r).To(BeNil())
 	})
 }
@@ -76,7 +77,7 @@ func TestValidateMongoConfig(t *testing.T) {
 	t.Run("Should error if none of the check methods are enabled", func(t *testing.T) {
 		cfg := &MongoConfig{
 			Auth: &MongoAuthConfig{
-				Url: "localhost:6379",
+				Url: "mongodb://localhost:6379",
 			},
 		}
 
@@ -84,19 +85,6 @@ func TestValidateMongoConfig(t *testing.T) {
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("At minimum, either cfg.Ping or cfg.Collection"))
 	})
-
-	t.Run("Should error if url has wrong format", func(t *testing.T) {
-		cfg := &MongoConfig{
-			Auth: &MongoAuthConfig{
-				Url: "localhost:40001?foo=1&bar=2",
-			},
-		}
-
-		err := validateMongoConfig(cfg)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Unable to parse URL"))
-	})
-
 }
 
 func TestMongoStatus(t *testing.T) {
@@ -113,13 +101,14 @@ func TestMongoStatus(t *testing.T) {
 
 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = checker.Status()
+		_, err = checker.Status(context.TODO())
 
 		Expect(err).To(BeNil())
 	})
 
 	t.Run("Should error if collection not found(available)", func(t *testing.T) {
 		cfg := &MongoConfig{
+			DB: "test_db",
 			Collection: "go-check",
 		}
 		checker, _, err := setupMongo(cfg)
@@ -127,7 +116,7 @@ func TestMongoStatus(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		_, err = checker.Status()
+		_, err = checker.Status(context.TODO())
 
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("collection not found"))

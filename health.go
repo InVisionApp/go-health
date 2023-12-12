@@ -6,11 +6,12 @@
 package health
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"time"
 
-	"github.com/InVisionApp/go-logger"
+	log "github.com/InVisionApp/go-logger"
 )
 
 //go:generate counterfeiter -o ./fakes/icheckable.go . ICheckable
@@ -48,7 +49,7 @@ type ICheckable interface {
 	// Status allows you to return additional data as an "interface{}" and "error"
 	// to signify that the check has failed. If "interface{}" is non-nil, it will
 	// be exposed under "State.Details" for that particular check.
-	Status() (interface{}, error)
+	Status(ctx context.Context) (interface{}, error)
 }
 
 // IStatusListener is an interface that handles health check failures and
@@ -249,7 +250,7 @@ func (h *Health) startRunner(cfg *Config, ticker *time.Ticker, stop <-chan struc
 
 	// function to execute and collect check data
 	checkFunc := func() {
-		data, err := cfg.Checker.Status()
+		data, err := cfg.Checker.Status(context.TODO())
 
 		stateEntry := &State{
 			Name:      cfg.Name,

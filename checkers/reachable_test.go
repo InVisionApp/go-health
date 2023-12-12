@@ -1,16 +1,18 @@
 package checkers_test
 
 import (
+	"context"
 	"errors"
 	"net"
 	"net/url"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/InVisionApp/go-health/v2/checkers"
 	"github.com/InVisionApp/go-health/v2/fakes"
 	"github.com/InVisionApp/go-health/v2/fakes/netfakes"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestReachableSuccessUsingDefaults(t *testing.T) {
@@ -34,7 +36,7 @@ func TestReachableSuccessUsingDefaults(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(c)
 
-	_, err = c.Status()
+	_, err = c.Status(context.TODO())
 	assert.NoError(err)
 	assert.Equal(0, dd.IncrCallCount())
 }
@@ -64,7 +66,7 @@ func TestReachableSuccess(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(c)
 
-	_, err = c.Status()
+	_, err = c.Status(context.TODO())
 	assert.NoError(err)
 	assert.Equal(0, dd.IncrCallCount())
 }
@@ -82,7 +84,7 @@ func TestReachableError(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(c)
 
-	_, err = c.Status()
+	_, err = c.Status(context.TODO())
 	assert.Error(err)
 }
 
@@ -102,7 +104,7 @@ func TestReachableConnError(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(c)
 
-	_, err = c.Status()
+	_, err = c.Status(context.TODO())
 	assert.EqualError(err, expectedErr.Error())
 }
 
@@ -125,7 +127,7 @@ func TestReachableErrorWithDatadog(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(c)
 
-	_, err = c.Status()
+	_, err = c.Status(context.TODO())
 	assert.Error(err)
 	assert.Equal(1, dd.IncrCallCount())
 	name, tags, num := dd.IncrArgsForCall(0)

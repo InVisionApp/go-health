@@ -2,6 +2,7 @@ package checkers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -63,7 +64,7 @@ func NewHTTP(cfg *HTTPConfig) (*HTTP, error) {
 
 // Status is used for performing an HTTP check against a dependency; it satisfies
 // the "ICheckable" interface.
-func (h *HTTP) Status() (interface{}, error) {
+func (h *HTTP) Status(ctx context.Context) (interface{}, error) {
 	resp, err := h.do()
 	if err != nil {
 		return nil, err

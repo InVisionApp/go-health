@@ -1,6 +1,7 @@
 package redischk
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -150,7 +151,7 @@ func TestRedisStatus(t *testing.T) {
 
 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = checker.Status()
+		_, err = checker.Status(context.TODO())
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Ping failed"))
 	})
@@ -170,7 +171,7 @@ func TestRedisStatus(t *testing.T) {
 			// Stop the server, so ping check fails
 			server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Unable to complete set"))
 		})
@@ -188,7 +189,7 @@ func TestRedisStatus(t *testing.T) {
 			}
 			defer server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 
 			val, err := server.Get(cfg.Set.Key)
@@ -208,7 +209,7 @@ func TestRedisStatus(t *testing.T) {
 			}
 			defer server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 
 			val, err := server.Get(cfg.Set.Key)
@@ -230,7 +231,7 @@ func TestRedisStatus(t *testing.T) {
 			}
 			defer server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("Unable to complete get: '%v' not found", cfg.Get.Key)))
 		})
@@ -248,7 +249,7 @@ func TestRedisStatus(t *testing.T) {
 			}
 			defer server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -267,7 +268,7 @@ func TestRedisStatus(t *testing.T) {
 			// Close the server so the GET fails
 			server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Unable to complete get"))
 		})
@@ -290,7 +291,7 @@ func TestRedisStatus(t *testing.T) {
 			}
 			defer server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("does not match expected value"))
 		})
@@ -311,7 +312,7 @@ func TestRedisStatus(t *testing.T) {
 			}
 			defer server.Close()
 
-			_, err = checker.Status()
+			_, err = checker.Status(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})

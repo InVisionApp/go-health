@@ -157,7 +157,7 @@ func TestSQLStatus(t *testing.T) {
 		Expect(err).To(BeNil())
 		Expect(s).ToNot(BeNil())
 
-		nothing, err := s.Status()
+		nothing, err := s.Status(context.TODO())
 		Expect(err).ToNot(HaveOccurred())
 
 		// status check returns no artifacts
@@ -172,7 +172,7 @@ func TestSQLStatus(t *testing.T) {
 		Expect(err).To(BeNil())
 		Expect(s).ToNot(BeNil())
 
-		_, err = s.Status()
+		_, err = s.Status(context.TODO())
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -184,13 +184,13 @@ func TestSQLStatus(t *testing.T) {
 		Expect(err).To(BeNil())
 		Expect(s).ToNot(BeNil())
 
-		_, err = s.Status()
+		_, err = s.Status(context.TODO())
 		Expect(err).To(HaveOccurred())
 	})
 
 	t.Run("bad config", func(t *testing.T) {
 		s := &SQL{}
-		_, err := s.Status()
+		_, err := s.Status(context.TODO())
 		Expect(err).To(HaveOccurred())
 	})
 }
@@ -210,7 +210,7 @@ func TestDefaultExecHandler(t *testing.T) {
 		})
 		Expect(err).To(BeNil())
 
-		_, err = s.Status()
+		_, err = s.Status(context.TODO())
 		Expect(err).To(BeNil())
 
 	})
@@ -301,7 +301,7 @@ func TestDefaultQueryHandler(t *testing.T) {
 		})
 		Expect(err).To(BeNil())
 
-		_, err = s.Status()
+		_, err = s.Status(context.TODO())
 		Expect(err).To(BeNil())
 
 	})

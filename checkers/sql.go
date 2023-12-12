@@ -36,7 +36,6 @@ type SQLExecerResultHandler func(result sql.Result) (bool, error)
 // SQLConfig is used for configuring a database check.
 // One of the Pinger, Queryer, or Execer fields is required.
 //
-//
 // If Execer is set, it will take precedence over Queryer and Pinger,
 // Execer implements the SQLExecer interface in this package.
 // The sql.DB and sql.TX structs both implement this interface.
@@ -44,14 +43,12 @@ type SQLExecerResultHandler func(result sql.Result) (bool, error)
 // Note that if the Execer is set, then the ExecerResultHandler
 // and Query values MUST also be set
 //
-//
 // If Queryer is set, it will take precedence over Pinger.
 // SQLQueryer implements the SQLQueryer interface in this package.
 // The sql.DB and sql.TX structs both implement this interface.
 //
 // Note that if the Queryer is set, then the QueryerResultHandler
 // and Query values MUST also be set
-//
 //
 // Pinger implements the SQLPinger interface in this package.
 // The sql.DB struct implements this interface.
@@ -140,7 +137,7 @@ func validateSQLConfig(cfg *SQLConfig) error {
 
 // Status is used for performing a database ping against a dependency; it satisfies
 // the "ICheckable" interface.
-func (s *SQL) Status() (interface{}, error) {
+func (s *SQL) Status(ctx context.Context) (interface{}, error) {
 	if err := validateSQLConfig(s.Config); err != nil {
 		return nil, err
 	}

@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/InVisionApp/go-health/v2"
 	"github.com/InVisionApp/go-health/v2/handlers"
 )
@@ -42,7 +44,7 @@ func main() {
 }
 
 // Satisfy the go-health.ICheckable interface
-func (c *customCheck) Status() (interface{}, error) {
+func (c *customCheck) Status(ctx context.Context) (interface{}, error) {
 	// perform some sort of check
 	if false {
 		return nil, fmt.Errorf("Something major just broke")

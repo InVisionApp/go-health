@@ -1,10 +1,13 @@
 package mongochk
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"github.com/globalsign/mgo"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const (
@@ -32,16 +35,14 @@ type MongoConfig struct {
 }
 
 // MongoAuthConfig, used to setup connection params for go-mongo check
-// Url format is localhost:27017 or mongo://localhost:27017
-// Credential has format described at https://godoc.org/github.com/globalsign/mgo#Credential
+// Url mongodb://localhost:27017
 type MongoAuthConfig struct {
-	Url         string
-	Credentials mgo.Credential
+	Url string
 }
 
 type Mongo struct {
-	Config  *MongoConfig
-	Session *mgo.Session
+	Config *MongoConfig
+	Client *mongo.Client
 }
 
 func NewMongo(cfg *MongoConfig) (*Mongo, error) {
@@ -50,48 +51,51 @@ func NewMongo(cfg *MongoConfig) (*Mongo, error) {
 		return nil, fmt.Errorf("unable to validate mongodb config: %v", err)
 	}
 
-	session, err := mgo.DialWithTimeout(cfg.Auth.Url, cfg.DialTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.DialTimeout*time.Second)
+	defer cancel()
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(cfg.Auth.Url))
 	if err != nil {
 		return nil, err
 	}
 
-	if err := session.Ping(); err != nil {
+	if err := client.Ping(context.Background(), nil); err != nil {
 		return nil, fmt.Errorf("unable to establish initial connection to mongodb: %v", err)
 	}
 
 	return &Mongo{
-		Config:  cfg,
-		Session: session,
+		Config: cfg,
+		Client: client,
 	}, nil
 }
 
-func (m *Mongo) Status() (interface{}, error) {
+func (m *Mongo) Status(ctx context.Context) (interface{}, error) {
 	if m.Config.Ping {
-		if err := m.Session.Ping(); err != nil {
+		if err := m.Client.Ping(ctx, nil); err != nil {
 			return nil, fmt.Errorf("ping failed: %v", err)
 		}
 	}
 
-	if m.Config.Collection != "" {
-		collections, err := m.Session.DB(m.Config.DB).CollectionNames()
+	if m.Config.DB != "" && m.Config.Collection != "" {
+		cur, err := m.Client.Database(m.Config.DB).
+			ListCollections(ctx, bson.D{{"name", m.Config.Collection}}, options.ListCollections().SetNameOnly(true))
+
 		if err != nil {
 			return nil, fmt.Errorf("unable to complete set: %v", err)
 		}
-		if !contains(collections, m.Config.Collection) {
+
+		defer cur.Close(ctx)
+
+		if !cur.Next(ctx) {
+			if err := cur.Err(); err != nil {
+				return nil, err
+			}
+
 			return nil, fmt.Errorf("mongo db %v collection not found", m.Config.Collection)
 		}
 	}
 
 	return nil, nil
-}
-
-func contains(data []string, needle string) bool {
-	for _, item := range data {
-		if item == needle {
-			return true
-		}
-	}
-	return false
 }
 
 func validateMongoConfig(cfg *MongoConfig) error {
@@ -105,10 +109,6 @@ func validateMongoConfig(cfg *MongoConfig) error {
 
 	if cfg.Auth.Url == "" {
 		return fmt.Errorf("Url string must be set in auth config")
-	}
-
-	if _, err := mgo.ParseURL(cfg.Auth.Url); err != nil {
-		return fmt.Errorf("Unable to parse URL: %v", err)
 	}
 
 	if !cfg.Ping && cfg.Collection == "" {
