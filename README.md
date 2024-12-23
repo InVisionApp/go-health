@@ -1,3 +1,6 @@
+| :warning: This project is no longer actively supported.
+| ---
+
 [![LICENSE](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 [![Build Status](https://travis-ci.org/InVisionApp/go-health.svg?branch=master)](https://travis-ci.org/InVisionApp/go-health)
 [![Maintainability](https://api.codeclimate.com/v1/badges/973b603c7f6ad3a59d0a/maintainability)](https://codeclimate.com/github/InVisionApp/go-health/maintainability)
